@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SyncButton } from "@/components/SyncButton";
-import { Hash, Music, ExternalLink, Clock } from "lucide-react";
+import { Hash, Music, ExternalLink, Clock, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PlaylistCardProps {
@@ -16,6 +17,7 @@ interface PlaylistCardProps {
   trackCount: number;
   lastSyncedAt: string | null;
   onSyncComplete?: () => void;
+  onDelete?: () => void;
 }
 
 function timeAgo(date: string): string {
@@ -30,6 +32,7 @@ function timeAgo(date: string): string {
 }
 
 export function PlaylistCard({
+  id,
   channelId,
   channelName,
   teamName,
@@ -37,7 +40,27 @@ export function PlaylistCard({
   trackCount,
   lastSyncedAt,
   onSyncComplete,
+  onDelete,
 }: PlaylistCardProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!confirm(`Remove #${channelName} playlist tracking? You can re-create it later from the Channels page.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/playlists/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Delete failed");
+      }
+      onDelete?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <Card className="transition-shadow hover:shadow-lg">
       <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
@@ -68,6 +91,15 @@ export function PlaylistCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
           <SyncButton
             channelIds={[channelId]}
             label="Sync"

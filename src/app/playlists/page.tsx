@@ -87,6 +87,7 @@ export default function PlaylistsPage() {
               trackCount={p.trackCount}
               lastSyncedAt={p.lastSyncedAt}
               onSyncComplete={fetchPlaylists}
+              onDelete={fetchPlaylists}
             />
           ))}
         </div>

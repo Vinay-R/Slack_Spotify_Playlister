@@ -45,10 +45,10 @@ export async function createPlaylist(
   name: string,
   description?: string
 ): Promise<{ id: string; url: string }> {
-  const { token, userId } = await getValidToken();
+  const { token } = await getValidToken();
 
   const res = await fetch(
-    `https://api.spotify.com/v1/users/${userId}/playlists`,
+    `https://api.spotify.com/v1/me/playlists`,
     {
       method: "POST",
       headers: {
@@ -63,10 +63,23 @@ export async function createPlaylist(
     }
   );
 
-  const data = await res.json();
-  if (data.error) throw new Error(`Spotify create playlist failed: ${data.error.message}`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Spotify create playlist error:", res.status, text);
+    throw new Error(`Spotify create playlist failed (${res.status}): ${text}`);
+  }
 
+  const data = await res.json();
   return { id: data.id, url: data.external_urls.spotify };
+}
+
+export async function checkPlaylistExists(playlistId: string): Promise<boolean> {
+  const { token } = await getValidToken();
+  const res = await fetch(
+    `https://api.spotify.com/v1/playlists/${playlistId}?fields=id`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.ok;
 }
 
 export async function addTracksToPlaylist(
@@ -81,7 +94,7 @@ export async function addTracksToPlaylist(
   for (let i = 0; i < trackUris.length; i += 100) {
     const batch = trackUris.slice(i, i + 100);
     const res = await fetch(
-      `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+      `https://api.spotify.com/v1/playlists/${playlistId}/items`,
       {
         method: "POST",
         headers: {
@@ -92,9 +105,10 @@ export async function addTracksToPlaylist(
       }
     );
 
-    const data = await res.json();
-    if (data.error) {
-      throw new Error(`Failed to add tracks: ${data.error.message}`);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Spotify add tracks error:", res.status, text);
+      throw new Error(`Failed to add tracks (${res.status}): ${text}`);
     }
   }
 }

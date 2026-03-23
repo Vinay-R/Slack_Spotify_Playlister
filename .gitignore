@@ -45,3 +45,6 @@ next-env.d.ts
 # SQLite
 *.db
 *.db-journal
+
+# Local SSL certificates
+certificates/

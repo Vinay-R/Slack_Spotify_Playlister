@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchChannelHistory } from "@/lib/slack";
 import { extractSpotifyLinks, spotifyTrackUri } from "@/lib/url-parser";
-import { addTracksToPlaylist, getAlbumTrackUris } from "@/lib/spotify";
+import {
+  addTracksToPlaylist,
+  getAlbumTrackUris,
+  checkPlaylistExists,
+  createPlaylist,
+} from "@/lib/spotify";
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as { channelIds?: string[] };
@@ -37,47 +42,99 @@ export async function POST(request: NextRequest) {
   const results: Array<{ channelName: string; newTracks: number }> = [];
 
   for (const channel of trackedChannels) {
-    const oldest = channel.lastSyncedAt
-      ? (channel.lastSyncedAt.getTime() / 1000).toString()
-      : undefined;
+    let playlistId = channel.spotifyPlaylistId!;
+    const stillExists = await checkPlaylistExists(playlistId);
+    let tracksAdded = 0;
 
-    const messages = await fetchChannelHistory(
-      slack.accessToken,
-      channel.channelId,
-      oldest
-    );
+    if (!stillExists) {
+      await prisma.playlistTrack.deleteMany({ where: { channelId: channel.id } });
 
-    const allTrackUris: string[] = [];
-    for (const msg of messages) {
-      const links = extractSpotifyLinks(msg.text);
-      for (const link of links) {
-        if (link.type === "track") {
-          allTrackUris.push(spotifyTrackUri(link.id));
-        } else if (link.type === "album") {
-          const albumTracks = await getAlbumTrackUris(link.id);
-          allTrackUris.push(...albumTracks);
+      const playlist = await createPlaylist(
+        `#${channel.channelName}`,
+        `Spotify tracks shared in #${channel.channelName} (recreated by Slack Playlister)`
+      );
+      playlistId = playlist.id;
+
+      await prisma.trackedChannel.update({
+        where: { id: channel.id },
+        data: {
+          spotifyPlaylistId: playlist.id,
+          spotifyPlaylistUrl: playlist.url,
+        },
+      });
+
+      const fullMessages = await fetchChannelHistory(
+        slack.accessToken,
+        channel.channelId
+      );
+      const allUris: string[] = [];
+      for (const msg of fullMessages) {
+        const links = extractSpotifyLinks(msg.text);
+        for (const link of links) {
+          if (link.type === "track") {
+            allUris.push(spotifyTrackUri(link.id));
+          } else if (link.type === "album") {
+            const albumTracks = await getAlbumTrackUris(link.id);
+            allUris.push(...albumTracks);
+          }
         }
       }
-    }
+      const uniqueUris = [...new Set(allUris)];
 
-    const uniqueUris = [...new Set(allTrackUris)];
-
-    const existingTracks = await prisma.playlistTrack.findMany({
-      where: { channelId: channel.id },
-      select: { trackUri: true },
-    });
-    const existingSet = new Set(existingTracks.map((t) => t.trackUri));
-    const newUris = uniqueUris.filter((u) => !existingSet.has(u));
-
-    if (newUris.length > 0 && channel.spotifyPlaylistId) {
-      await addTracksToPlaylist(channel.spotifyPlaylistId, newUris);
-      for (const uri of newUris) {
-        await prisma.playlistTrack.upsert({
-          where: { trackUri_channelId: { trackUri: uri, channelId: channel.id } },
-          update: {},
-          create: { trackUri: uri, channelId: channel.id },
-        });
+      if (uniqueUris.length > 0) {
+        await addTracksToPlaylist(playlistId, uniqueUris);
+        for (const uri of uniqueUris) {
+          await prisma.playlistTrack.upsert({
+            where: { trackUri_channelId: { trackUri: uri, channelId: channel.id } },
+            update: {},
+            create: { trackUri: uri, channelId: channel.id },
+          });
+        }
       }
+      tracksAdded = uniqueUris.length;
+    } else {
+      const oldest = channel.lastSyncedAt
+        ? (channel.lastSyncedAt.getTime() / 1000).toString()
+        : undefined;
+
+      const messages = await fetchChannelHistory(
+        slack.accessToken,
+        channel.channelId,
+        oldest
+      );
+
+      const allTrackUris: string[] = [];
+      for (const msg of messages) {
+        const links = extractSpotifyLinks(msg.text);
+        for (const link of links) {
+          if (link.type === "track") {
+            allTrackUris.push(spotifyTrackUri(link.id));
+          } else if (link.type === "album") {
+            const albumTracks = await getAlbumTrackUris(link.id);
+            allTrackUris.push(...albumTracks);
+          }
+        }
+      }
+      const uniqueUris = [...new Set(allTrackUris)];
+
+      const existingTracks = await prisma.playlistTrack.findMany({
+        where: { channelId: channel.id },
+        select: { trackUri: true },
+      });
+      const existingSet = new Set(existingTracks.map((t) => t.trackUri));
+      const newUris = uniqueUris.filter((u) => !existingSet.has(u));
+
+      if (newUris.length > 0) {
+        await addTracksToPlaylist(playlistId, newUris);
+        for (const uri of newUris) {
+          await prisma.playlistTrack.upsert({
+            where: { trackUri_channelId: { trackUri: uri, channelId: channel.id } },
+            update: {},
+            create: { trackUri: uri, channelId: channel.id },
+          });
+        }
+      }
+      tracksAdded = newUris.length;
     }
 
     await prisma.trackedChannel.update({
@@ -87,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     results.push({
       channelName: channel.channelName,
-      newTracks: newUris.length,
+      newTracks: tracksAdded,
     });
   }
 

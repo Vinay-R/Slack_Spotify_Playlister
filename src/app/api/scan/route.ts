@@ -6,6 +6,7 @@ import {
   createPlaylist,
   addTracksToPlaylist,
   getAlbumTrackUris,
+  checkPlaylistExists,
 } from "@/lib/spotify";
 import { WebClient } from "@slack/web-api";
 
@@ -44,85 +45,97 @@ export async function POST(request: NextRequest) {
 
   const results: Array<{ channelName: string; tracksAdded: number; playlistUrl: string }> = [];
 
-  for (const channelId of channelIds) {
-    const messages = await fetchChannelHistory(slack.accessToken, channelId);
-    const uniqueUris = await collectTrackUris(messages);
+  try {
+    for (const channelId of channelIds) {
+      const messages = await fetchChannelHistory(slack.accessToken, channelId);
+      const uniqueUris = await collectTrackUris(messages);
 
-    const existing = await prisma.trackedChannel.findUnique({ where: { channelId } });
+      const existing = await prisma.trackedChannel.findUnique({ where: { channelId } });
 
-    if (existing?.spotifyPlaylistId) {
-      const existingTracks = await prisma.playlistTrack.findMany({
-        where: { channelId: existing.id },
-        select: { trackUri: true },
-      });
-      const existingSet = new Set(existingTracks.map((t) => t.trackUri));
-      const newUris = uniqueUris.filter((u) => !existingSet.has(u));
+      const playlistStillExists = existing?.spotifyPlaylistId
+        ? await checkPlaylistExists(existing.spotifyPlaylistId)
+        : false;
 
-      if (newUris.length > 0) {
-        await addTracksToPlaylist(existing.spotifyPlaylistId, newUris);
-        for (const uri of newUris) {
-          await prisma.playlistTrack.upsert({
-            where: { trackUri_channelId: { trackUri: uri, channelId: existing.id } },
-            update: {},
-            create: { trackUri: uri, channelId: existing.id },
-          });
+      if (existing?.spotifyPlaylistId && playlistStillExists) {
+        const existingTracks = await prisma.playlistTrack.findMany({
+          where: { channelId: existing.id },
+          select: { trackUri: true },
+        });
+        const existingSet = new Set(existingTracks.map((t) => t.trackUri));
+        const newUris = uniqueUris.filter((u) => !existingSet.has(u));
+
+        if (newUris.length > 0) {
+          await addTracksToPlaylist(existing.spotifyPlaylistId, newUris);
+          for (const uri of newUris) {
+            await prisma.playlistTrack.upsert({
+              where: { trackUri_channelId: { trackUri: uri, channelId: existing.id } },
+              update: {},
+              create: { trackUri: uri, channelId: existing.id },
+            });
+          }
         }
-      }
 
-      await prisma.trackedChannel.update({
-        where: { id: existing.id },
-        data: { lastSyncedAt: new Date() },
-      });
+        await prisma.trackedChannel.update({
+          where: { id: existing.id },
+          data: { lastSyncedAt: new Date() },
+        });
 
-      results.push({
-        channelName: existing.channelName,
-        tracksAdded: newUris.length,
-        playlistUrl: existing.spotifyPlaylistUrl || "",
-      });
-    } else {
-      const client = new WebClient(slack.accessToken);
-      const info = await client.conversations.info({ channel: channelId });
-      const channelName = info.channel?.name || channelId;
+        results.push({
+          channelName: existing.channelName,
+          tracksAdded: newUris.length,
+          playlistUrl: existing.spotifyPlaylistUrl || "",
+        });
+      } else {
+        if (existing) {
+          await prisma.playlistTrack.deleteMany({ where: { channelId: existing.id } });
+        }
+        const client = new WebClient(slack.accessToken);
+        const info = await client.conversations.info({ channel: channelId });
+        const channelName = info.channel?.name || channelId;
 
-      const playlist = await createPlaylist(
-        `#${channelName}`,
-        `Spotify tracks shared in #${channelName} on ${slack.teamName}`
-      );
+        const playlist = await createPlaylist(
+          `#${channelName}`,
+          `Spotify tracks shared in #${channelName} on ${slack.teamName}`
+        );
 
-      const trackedChannel = await prisma.trackedChannel.upsert({
-        where: { channelId },
-        update: {
-          spotifyPlaylistId: playlist.id,
-          spotifyPlaylistUrl: playlist.url,
-          lastSyncedAt: new Date(),
-        },
-        create: {
-          channelId,
+        const trackedChannel = await prisma.trackedChannel.upsert({
+          where: { channelId },
+          update: {
+            spotifyPlaylistId: playlist.id,
+            spotifyPlaylistUrl: playlist.url,
+            lastSyncedAt: new Date(),
+          },
+          create: {
+            channelId,
+            channelName,
+            slackConnectionId: slack.id,
+            spotifyPlaylistId: playlist.id,
+            spotifyPlaylistUrl: playlist.url,
+            lastSyncedAt: new Date(),
+          },
+        });
+
+        if (uniqueUris.length > 0) {
+          await addTracksToPlaylist(playlist.id, uniqueUris);
+          for (const uri of uniqueUris) {
+            await prisma.playlistTrack.upsert({
+              where: { trackUri_channelId: { trackUri: uri, channelId: trackedChannel.id } },
+              update: {},
+              create: { trackUri: uri, channelId: trackedChannel.id },
+            });
+          }
+        }
+
+        results.push({
           channelName,
-          slackConnectionId: slack.id,
-          spotifyPlaylistId: playlist.id,
-          spotifyPlaylistUrl: playlist.url,
-          lastSyncedAt: new Date(),
-        },
-      });
-
-      if (uniqueUris.length > 0) {
-        await addTracksToPlaylist(playlist.id, uniqueUris);
-        for (const uri of uniqueUris) {
-          await prisma.playlistTrack.upsert({
-            where: { trackUri_channelId: { trackUri: uri, channelId: trackedChannel.id } },
-            update: {},
-            create: { trackUri: uri, channelId: trackedChannel.id },
-          });
-        }
+          tracksAdded: uniqueUris.length,
+          playlistUrl: playlist.url,
+        });
       }
-
-      results.push({
-        channelName,
-        tracksAdded: uniqueUris.length,
-        playlistUrl: playlist.url,
-      });
     }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error during scan";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   return NextResponse.json({ results });

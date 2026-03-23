@@ -8,12 +8,12 @@ export async function GET() {
     );
   }
 
-  const scopes = ["channels:read", "channels:history"].join(",");
-  const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/slack/callback`;
+  const userScopes = ["channels:read", "channels:history"].join(",");
+  const redirectUri = `${process.env.SLACK_REDIRECT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/slack/callback`;
 
   const url = new URL("https://slack.com/oauth/v2/authorize");
   url.searchParams.set("client_id", clientId);
-  url.searchParams.set("scope", scopes);
+  url.searchParams.set("user_scope", userScopes);
   url.searchParams.set("redirect_uri", redirectUri);
 
   return NextResponse.redirect(url.toString());

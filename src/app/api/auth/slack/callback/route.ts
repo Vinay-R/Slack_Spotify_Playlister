@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/slack/callback`;
+  const redirectUri = `${process.env.SLACK_REDIRECT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/slack/callback`;
 
   const body = new URLSearchParams({
     code,
@@ -34,16 +34,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const userToken = data.authed_user?.access_token;
+  if (!userToken) {
+    return NextResponse.redirect(
+      new URL("/connect?error=no_user_token", request.url)
+    );
+  }
+
   await prisma.slackConnection.upsert({
     where: { teamId: data.team.id },
     update: {
-      accessToken: data.access_token,
+      accessToken: userToken,
       teamName: data.team.name,
     },
     create: {
       teamId: data.team.id,
       teamName: data.team.name,
-      accessToken: data.access_token,
+      accessToken: userToken,
     },
   });
 

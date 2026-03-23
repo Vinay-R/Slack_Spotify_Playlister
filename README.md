@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Slack Playlister
+
+Create Spotify playlists from music links shared in your Slack channels. Connect your Slack workspace, pick which channels to watch, and Slack Playlister will build and maintain a Spotify playlist for each one.
+
+## Features
+
+- **Slack OAuth** -- connect any workspace in one click
+- **Channel picker** -- search/filter and multi-select channels
+- **Backfill scan** -- reads the full history of a channel and extracts every Spotify track & album link
+- **Incremental sync** -- re-scan only new messages since the last sync
+- **Spotify playlist creation** -- one playlist per channel, named `#channel-name`
+- **Duplicate prevention** -- tracks are never added twice
+
+## Prerequisites
+
+You need two developer apps before running:
+
+### 1. Create a Slack App
+
+1. Go to <https://api.slack.com/apps> and click **Create New App > From scratch**
+2. Name it (e.g. "Slack Playlister") and select your workspace
+3. Under **OAuth & Permissions > Scopes > Bot Token Scopes**, add:
+   - `channels:read`
+   - `channels:history`
+4. Under **OAuth & Permissions > Redirect URLs**, add:
+   ```
+   http://localhost:3000/api/auth/slack/callback
+   ```
+5. Copy the **Client ID** and **Client Secret** from **Basic Information**
+
+### 2. Create a Spotify App
+
+1. Go to <https://developer.spotify.com/dashboard> and create a new app
+2. Set the **Redirect URI** to:
+   ```
+   http://localhost:3000/api/auth/spotify/callback
+   ```
+3. Check **Web API** under the APIs section
+4. Copy the **Client ID** and **Client Secret**
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Copy and fill in your credentials
+cp .env.example .env
+# Edit .env with your Slack and Spotify credentials
+
+# Create the database
+npx prisma migrate dev
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000> and follow the on-screen steps:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Connect** your Slack workspace and Spotify account on the `/connect` page
+2. **Select channels** on the `/channels` page
+3. **Create playlists** -- the app scans each channel and creates a Spotify playlist
+4. **Sync** anytime from the `/playlists` page to pull in new tracks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Stack
 
-## Learn More
+- **Next.js** (App Router) + React
+- **Tailwind CSS** + shadcn/ui
+- **Prisma** + SQLite
+- **Slack Web API** (`@slack/web-api`)
+- **Spotify Web API** (direct fetch)
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    page.tsx              Dashboard
+    connect/page.tsx      OAuth connections
+    channels/page.tsx     Channel selector
+    playlists/page.tsx    Playlist manager
+    api/
+      auth/slack/         Slack OAuth flow
+      auth/spotify/       Spotify OAuth flow
+      channels/           List Slack channels
+      playlists/          List tracked playlists
+      scan/               Backfill scan
+      sync/               Incremental sync
+      status/             Connection status
+  lib/
+    prisma.ts             Database client
+    slack.ts              Slack API helpers
+    spotify.ts            Spotify API helpers
+    url-parser.ts         Spotify URL regex extraction
+  components/             UI components
+prisma/
+  schema.prisma           Database schema
+```

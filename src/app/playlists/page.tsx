@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { PlaylistCard } from "@/components/PlaylistCard";
 import { SyncButton } from "@/components/SyncButton";
+import { AutoSyncManager } from "@/components/AutoSyncManager";
 import { buttonVariants } from "@/components/ui/button";
 import { Loader2, ListMusic } from "lucide-react";
 import Link from "next/link";
@@ -60,6 +61,19 @@ export default function PlaylistsPage() {
           />
         )}
       </div>
+
+      {playlists.length > 0 && (
+        <AutoSyncManager
+          lastSyncedAt={
+            playlists.reduce<string | null>((latest, p) => {
+              if (!p.lastSyncedAt) return latest;
+              if (!latest) return p.lastSyncedAt;
+              return p.lastSyncedAt > latest ? p.lastSyncedAt : latest;
+            }, null)
+          }
+          onSyncTriggered={fetchPlaylists}
+        />
+      )}
 
       {playlists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">

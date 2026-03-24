@@ -88,9 +88,10 @@ export async function GET(request: NextRequest) {
       new URL("/connect?spotify=connected", request.url)
     );
   } catch (err) {
-    console.error("Spotify OAuth callback error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Spotify OAuth callback error:", msg);
     return NextResponse.redirect(
-      new URL("/connect?error=token_exchange_failed", request.url)
+      new URL(`/connect?error=${encodeURIComponent("token_exchange_failed: " + msg)}`, request.url)
     );
   }
 }

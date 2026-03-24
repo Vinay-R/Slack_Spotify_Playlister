@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifySignedState } from "@/lib/oauth-state";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -12,80 +13,84 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let userId: string | undefined;
-  if (stateParam) {
-    try {
-      const decoded = JSON.parse(
-        Buffer.from(stateParam, "base64url").toString()
-      );
-      userId = decoded.userId;
-    } catch {
-      return NextResponse.redirect(
-        new URL("/connect?error=invalid_state", request.url)
-      );
-    }
+  let userId: string;
+  try {
+    const verified = verifySignedState(stateParam || "");
+    userId = verified.userId;
+  } catch {
+    return NextResponse.redirect(
+      new URL("/connect?error=invalid_state", request.url)
+    );
   }
 
-  if (!userId) {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    console.error("Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET");
     return NextResponse.redirect(
-      new URL("/connect?error=missing_user", request.url)
+      new URL("/connect?error=server_misconfigured", request.url)
     );
   }
 
   const redirectUri = `${process.env.SPOTIFY_REDIRECT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:3000"}/api/auth/spotify/callback`;
-  const basicAuth = Buffer.from(
-    `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-  ).toString("base64");
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-  const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${basicAuth}`,
-    },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-    }),
-  });
+  try {
+    const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${basicAuth}`,
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
 
-  const tokenData = await tokenRes.json();
+    const tokenData = await tokenRes.json();
 
-  if (tokenData.error) {
+    if (tokenData.error) {
+      return NextResponse.redirect(
+        new URL(`/connect?error=${tokenData.error}`, request.url)
+      );
+    }
+
+    const profileRes = await fetch("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const profile = await profileRes.json();
+
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+
+    await prisma.spotifyConnection.upsert({
+      where: {
+        userId_spotifyUserId: { userId, spotifyUserId: profile.id },
+      },
+      update: {
+        displayName: profile.display_name || profile.id,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt,
+      },
+      create: {
+        userId,
+        spotifyUserId: profile.id,
+        displayName: profile.display_name || profile.id,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt,
+      },
+    });
+
     return NextResponse.redirect(
-      new URL(`/connect?error=${tokenData.error}`, request.url)
+      new URL("/connect?spotify=connected", request.url)
+    );
+  } catch (err) {
+    console.error("Spotify OAuth callback error:", err);
+    return NextResponse.redirect(
+      new URL("/connect?error=token_exchange_failed", request.url)
     );
   }
-
-  const profileRes = await fetch("https://api.spotify.com/v1/me", {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  });
-  const profile = await profileRes.json();
-
-  const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
-
-  await prisma.spotifyConnection.upsert({
-    where: {
-      userId_spotifyUserId: { userId, spotifyUserId: profile.id },
-    },
-    update: {
-      displayName: profile.display_name || profile.id,
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt,
-    },
-    create: {
-      userId,
-      spotifyUserId: profile.id,
-      displayName: profile.display_name || profile.id,
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt,
-    },
-  });
-
-  return NextResponse.redirect(
-    new URL("/connect?spotify=connected", request.url)
-  );
 }

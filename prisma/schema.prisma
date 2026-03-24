@@ -9,7 +9,7 @@ datasource db {
 
 model SlackConnection {
   id          String   @id @default(cuid())
-  userId      String?
+  userId      String
   teamId      String
   teamName    String
   accessToken String
@@ -21,7 +21,7 @@ model SlackConnection {
 
 model SpotifyConnection {
   id            String   @id @default(cuid())
-  userId        String?
+  userId        String
   spotifyUserId String
   displayName   String
   accessToken   String
@@ -34,7 +34,7 @@ model SpotifyConnection {
 
 model TrackedChannel {
   id                 String   @id @default(cuid())
-  userId             String?
+  userId             String
   channelId          String
   channelName        String
   slackConnectionId  String
@@ -46,6 +46,7 @@ model TrackedChannel {
   tracks             PlaylistTrack[]
 
   @@unique([userId, channelId])
+  @@index([slackConnectionId])
 }
 
 model PlaylistTrack {
@@ -57,4 +58,5 @@ model PlaylistTrack {
   addedAt          DateTime @default(now())
 
   @@unique([trackUri, channelId])
+  @@index([channelId])
 }

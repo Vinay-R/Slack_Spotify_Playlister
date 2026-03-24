@@ -7,7 +7,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
-    return NextResponse.next();
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -47,6 +47,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   } catch (err) {
     console.error("Middleware error:", err);
-    return NextResponse.next();
+    const { pathname } = request.nextUrl;
+    const publicPaths = ["/login", "/signup", "/api/auth/"];
+    const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+    if (isPublic) {
+      return NextResponse.next();
+    }
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -10,6 +10,11 @@ import {
 } from "@/lib/spotify";
 import { WebClient } from "@slack/web-api";
 import { getUser } from "@/lib/auth";
+import { z } from "zod";
+
+const scanBodySchema = z.object({
+  channelIds: z.array(z.string().min(1)).min(1, "No channels selected"),
+});
 
 async function collectTrackUris(
   messages: Array<{ text: string }>,
@@ -31,30 +36,33 @@ async function collectTrackUris(
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getUser();
-  const { channelIds } = (await request.json()) as { channelIds: string[] };
-
-  if (!channelIds?.length) {
-    return NextResponse.json({ error: "No channels selected" }, { status: 400 });
-  }
-
-  const slack = await prisma.slackConnection.findFirst({
-    where: { userId: user.id },
-  });
-  if (!slack) {
-    return NextResponse.json({ error: "No Slack workspace connected" }, { status: 400 });
-  }
-
-  const spotify = await prisma.spotifyConnection.findFirst({
-    where: { userId: user.id },
-  });
-  if (!spotify) {
-    return NextResponse.json({ error: "No Spotify account connected" }, { status: 400 });
-  }
-
-  const results: Array<{ channelName: string; tracksAdded: number; playlistUrl: string }> = [];
-
   try {
+    const user = await getUser();
+
+    const parseResult = scanBodySchema.safeParse(await request.json());
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request: channelIds must be a non-empty array of strings" },
+        { status: 400 }
+      );
+    }
+    const { channelIds } = parseResult.data;
+
+    const slack = await prisma.slackConnection.findFirst({
+      where: { userId: user.id },
+    });
+    if (!slack) {
+      return NextResponse.json({ error: "No Slack workspace connected" }, { status: 400 });
+    }
+
+    const spotify = await prisma.spotifyConnection.findFirst({
+      where: { userId: user.id },
+    });
+    if (!spotify) {
+      return NextResponse.json({ error: "No Spotify account connected" }, { status: 400 });
+    }
+
+    const results: Array<{ channelName: string; tracksAdded: number; playlistUrl: string }> = [];
     for (const channelId of channelIds) {
       const messages = await fetchChannelHistory(slack.accessToken, channelId);
       const uniqueUris = await collectTrackUris(messages, user.id);
@@ -146,10 +154,13 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error during scan";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
 
-  return NextResponse.json({ results });
+    return NextResponse.json({ results });
+  } catch (err) {
+    console.error("Scan error:", err);
+    return NextResponse.json(
+      { error: "An error occurred while scanning channels" },
+      { status: 500 }
+    );
+  }
 }

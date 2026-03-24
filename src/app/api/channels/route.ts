@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { listChannels } from "@/lib/slack";
+import { getUser } from "@/lib/auth";
 
 export async function GET() {
-  const slack = await prisma.slackConnection.findFirst();
+  const user = await getUser();
+
+  const slack = await prisma.slackConnection.findFirst({
+    where: { userId: user.id },
+  });
   if (!slack) {
     return NextResponse.json(
       { error: "No Slack workspace connected" },
@@ -15,7 +20,7 @@ export async function GET() {
     const channels = await listChannels(slack.accessToken);
 
     const tracked = await prisma.trackedChannel.findMany({
-      where: { slackConnectionId: slack.id },
+      where: { slackConnectionId: slack.id, userId: user.id },
       select: { channelId: true },
     });
     const trackedIds = new Set(tracked.map((t) => t.channelId));

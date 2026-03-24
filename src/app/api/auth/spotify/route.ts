@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getUser } from "@/lib/auth";
 import crypto from "crypto";
 
 export async function GET() {
@@ -9,13 +10,20 @@ export async function GET() {
     );
   }
 
+  const user = await getUser();
+
+  const statePayload = JSON.stringify({
+    userId: user.id,
+    nonce: crypto.randomBytes(16).toString("hex"),
+  });
+  const state = Buffer.from(statePayload).toString("base64url");
+
   const scopes = [
     "playlist-modify-public",
     "playlist-modify-private",
     "user-read-private",
   ].join(" ");
   const redirectUri = `${process.env.SPOTIFY_REDIRECT_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:3000"}/api/auth/spotify/callback`;
-  const state = crypto.randomBytes(16).toString("hex");
 
   const url = new URL("https://accounts.spotify.com/authorize");
   url.searchParams.set("response_type", "code");

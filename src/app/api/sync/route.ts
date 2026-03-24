@@ -8,12 +8,16 @@ import {
   checkPlaylistExists,
   createPlaylist,
 } from "@/lib/spotify";
+import { getUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const user = await getUser();
   const body = (await request.json()) as { channelIds?: string[] };
   const channelIds = body.channelIds;
 
-  const slack = await prisma.slackConnection.findFirst();
+  const slack = await prisma.slackConnection.findFirst({
+    where: { userId: user.id },
+  });
   if (!slack) {
     return NextResponse.json(
       { error: "No Slack workspace connected" },
@@ -24,11 +28,15 @@ export async function POST(request: NextRequest) {
   let trackedChannels;
   if (channelIds?.length) {
     trackedChannels = await prisma.trackedChannel.findMany({
-      where: { channelId: { in: channelIds }, NOT: { spotifyPlaylistId: null } },
+      where: {
+        userId: user.id,
+        channelId: { in: channelIds },
+        NOT: { spotifyPlaylistId: null },
+      },
     });
   } else {
     trackedChannels = await prisma.trackedChannel.findMany({
-      where: { NOT: { spotifyPlaylistId: null } },
+      where: { userId: user.id, NOT: { spotifyPlaylistId: null } },
     });
   }
 
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   for (const channel of trackedChannels) {
     let playlistId = channel.spotifyPlaylistId!;
-    const stillExists = await checkPlaylistExists(playlistId);
+    const stillExists = await checkPlaylistExists(playlistId, user.id);
     let tracksAdded = 0;
 
     if (!stillExists) {
@@ -51,7 +59,8 @@ export async function POST(request: NextRequest) {
 
       const playlist = await createPlaylist(
         `#${channel.channelName}`,
-        `Spotify tracks shared in #${channel.channelName} (recreated by Slack Playlister)`
+        `Spotify tracks shared in #${channel.channelName} (recreated by Slack Playlister)`,
+        user.id
       );
       playlistId = playlist.id;
 
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
           if (link.type === "track") {
             allUris.push(spotifyTrackUri(link.id));
           } else if (link.type === "album") {
-            const albumTracks = await getAlbumTrackUris(link.id);
+            const albumTracks = await getAlbumTrackUris(link.id, user.id);
             allUris.push(...albumTracks);
           }
         }
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
       const uniqueUris = [...new Set(allUris)];
 
       if (uniqueUris.length > 0) {
-        await addTracksToPlaylist(playlistId, uniqueUris);
+        await addTracksToPlaylist(playlistId, uniqueUris, user.id);
         for (const uri of uniqueUris) {
           await prisma.playlistTrack.upsert({
             where: { trackUri_channelId: { trackUri: uri, channelId: channel.id } },
@@ -110,7 +119,7 @@ export async function POST(request: NextRequest) {
           if (link.type === "track") {
             allTrackUris.push(spotifyTrackUri(link.id));
           } else if (link.type === "album") {
-            const albumTracks = await getAlbumTrackUris(link.id);
+            const albumTracks = await getAlbumTrackUris(link.id, user.id);
             allTrackUris.push(...albumTracks);
           }
         }
@@ -125,7 +134,7 @@ export async function POST(request: NextRequest) {
       const newUris = uniqueUris.filter((u) => !existingSet.has(u));
 
       if (newUris.length > 0) {
-        await addTracksToPlaylist(playlistId, newUris);
+        await addTracksToPlaylist(playlistId, newUris, user.id);
         for (const uri of newUris) {
           await prisma.playlistTrack.upsert({
             where: { trackUri_channelId: { trackUri: uri, channelId: channel.id } },

@@ -1,11 +1,13 @@
 import { prisma } from "./prisma";
 
-async function getValidToken(): Promise<{ token: string; userId: string }> {
-  const conn = await prisma.spotifyConnection.findFirst();
+async function getValidToken(userId: string): Promise<string> {
+  const conn = await prisma.spotifyConnection.findFirst({
+    where: { userId },
+  });
   if (!conn) throw new Error("No Spotify connection found");
 
   if (conn.expiresAt > new Date()) {
-    return { token: conn.accessToken, userId: conn.userId };
+    return conn.accessToken;
   }
 
   const basicAuth = Buffer.from(
@@ -38,14 +40,15 @@ async function getValidToken(): Promise<{ token: string; userId: string }> {
     },
   });
 
-  return { token: data.access_token, userId: conn.userId };
+  return data.access_token;
 }
 
 export async function createPlaylist(
   name: string,
-  description?: string
+  description?: string,
+  userId?: string
 ): Promise<{ id: string; url: string }> {
-  const { token } = await getValidToken();
+  const token = await getValidToken(userId!);
 
   const res = await fetch(
     `https://api.spotify.com/v1/me/playlists`,
@@ -73,8 +76,11 @@ export async function createPlaylist(
   return { id: data.id, url: data.external_urls.spotify };
 }
 
-export async function checkPlaylistExists(playlistId: string): Promise<boolean> {
-  const { token } = await getValidToken();
+export async function checkPlaylistExists(
+  playlistId: string,
+  userId?: string
+): Promise<boolean> {
+  const token = await getValidToken(userId!);
   const res = await fetch(
     `https://api.spotify.com/v1/playlists/${playlistId}?fields=id`,
     { headers: { Authorization: `Bearer ${token}` } }
@@ -84,13 +90,13 @@ export async function checkPlaylistExists(playlistId: string): Promise<boolean> 
 
 export async function addTracksToPlaylist(
   playlistId: string,
-  trackUris: string[]
+  trackUris: string[],
+  userId?: string
 ): Promise<void> {
   if (trackUris.length === 0) return;
 
-  const { token } = await getValidToken();
+  const token = await getValidToken(userId!);
 
-  // Spotify allows max 100 tracks per request
   for (let i = 0; i < trackUris.length; i += 100) {
     const batch = trackUris.slice(i, i + 100);
     const res = await fetch(
@@ -113,8 +119,11 @@ export async function addTracksToPlaylist(
   }
 }
 
-export async function getAlbumTrackUris(albumId: string): Promise<string[]> {
-  const { token } = await getValidToken();
+export async function getAlbumTrackUris(
+  albumId: string,
+  userId?: string
+): Promise<string[]> {
+  const token = await getValidToken(userId!);
   const uris: string[] = [];
   let nextUrl: string | null =
     `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50`;

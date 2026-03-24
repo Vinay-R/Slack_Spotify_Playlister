@@ -9,26 +9,33 @@ datasource db {
 
 model SlackConnection {
   id          String   @id @default(cuid())
-  teamId      String   @unique
+  userId      String?
+  teamId      String
   teamName    String
   accessToken String
   createdAt   DateTime @default(now())
   channels    TrackedChannel[]
+
+  @@unique([userId, teamId])
 }
 
 model SpotifyConnection {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  displayName  String
-  accessToken  String
-  refreshToken String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String?
+  spotifyUserId String
+  displayName   String
+  accessToken   String
+  refreshToken  String
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, spotifyUserId])
 }
 
 model TrackedChannel {
   id                 String   @id @default(cuid())
-  channelId          String   @unique
+  userId             String?
+  channelId          String
   channelName        String
   slackConnectionId  String
   slackConnection    SlackConnection @relation(fields: [slackConnectionId], references: [id], onDelete: Cascade)
@@ -37,6 +44,8 @@ model TrackedChannel {
   lastSyncedAt       DateTime?
   createdAt          DateTime @default(now())
   tracks             PlaylistTrack[]
+
+  @@unique([userId, channelId])
 }
 
 model PlaylistTrack {

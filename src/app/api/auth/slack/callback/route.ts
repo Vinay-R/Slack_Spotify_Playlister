@@ -4,10 +4,31 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error");
+  const stateParam = request.nextUrl.searchParams.get("state");
 
   if (error || !code) {
     return NextResponse.redirect(
       new URL(`/connect?error=${error || "no_code"}`, request.url)
+    );
+  }
+
+  let userId: string | undefined;
+  if (stateParam) {
+    try {
+      const decoded = JSON.parse(
+        Buffer.from(stateParam, "base64url").toString()
+      );
+      userId = decoded.userId;
+    } catch {
+      return NextResponse.redirect(
+        new URL("/connect?error=invalid_state", request.url)
+      );
+    }
+  }
+
+  if (!userId) {
+    return NextResponse.redirect(
+      new URL("/connect?error=missing_user", request.url)
     );
   }
 
@@ -42,12 +63,13 @@ export async function GET(request: NextRequest) {
   }
 
   await prisma.slackConnection.upsert({
-    where: { teamId: data.team.id },
+    where: { userId_teamId: { userId, teamId: data.team.id } },
     update: {
       accessToken: userToken,
       teamName: data.team.name,
     },
     create: {
+      userId,
       teamId: data.team.id,
       teamName: data.team.name,
       accessToken: userToken,

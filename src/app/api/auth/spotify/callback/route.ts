@@ -4,10 +4,31 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error");
+  const stateParam = request.nextUrl.searchParams.get("state");
 
   if (error || !code) {
     return NextResponse.redirect(
       new URL(`/connect?error=${error || "no_code"}`, request.url)
+    );
+  }
+
+  let userId: string | undefined;
+  if (stateParam) {
+    try {
+      const decoded = JSON.parse(
+        Buffer.from(stateParam, "base64url").toString()
+      );
+      userId = decoded.userId;
+    } catch {
+      return NextResponse.redirect(
+        new URL("/connect?error=invalid_state", request.url)
+      );
+    }
+  }
+
+  if (!userId) {
+    return NextResponse.redirect(
+      new URL("/connect?error=missing_user", request.url)
     );
   }
 
@@ -45,7 +66,9 @@ export async function GET(request: NextRequest) {
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
   await prisma.spotifyConnection.upsert({
-    where: { userId: profile.id },
+    where: {
+      userId_spotifyUserId: { userId, spotifyUserId: profile.id },
+    },
     update: {
       displayName: profile.display_name || profile.id,
       accessToken: tokenData.access_token,
@@ -53,7 +76,8 @@ export async function GET(request: NextRequest) {
       expiresAt,
     },
     create: {
-      userId: profile.id,
+      userId,
+      spotifyUserId: profile.id,
       displayName: profile.display_name || profile.id,
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,

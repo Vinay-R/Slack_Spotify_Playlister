@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Music, Hash, ListMusic, Link2, LayoutDashboard } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Music, Hash, ListMusic, Link2, LayoutDashboard, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -14,6 +17,24 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setEmail(user?.email ?? null);
+    });
+  }, []);
+
+  if (pathname === "/login" || pathname === "/signup") return null;
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
@@ -45,6 +66,18 @@ export function Navbar() {
             );
           })}
         </nav>
+
+        <div className="flex items-center gap-3">
+          {email && (
+            <span className="hidden md:inline text-sm text-muted-foreground truncate max-w-[180px]">
+              {email}
+            </span>
+          )}
+          <Button variant="ghost" size="sm" onClick={handleLogout} title="Sign out">
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1.5">Sign out</span>
+          </Button>
+        </div>
       </div>
     </header>
   );

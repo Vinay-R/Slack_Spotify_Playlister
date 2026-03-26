@@ -26,21 +26,28 @@ export function ConnectionCard({
   accentClass,
 }: ConnectionCardProps) {
   return (
-    <Card className={cn("relative overflow-hidden transition-shadow hover:shadow-lg", accentClass)}>
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 to-primary" />
-      <CardHeader className="flex flex-row items-center gap-4 pb-2">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground">
+    <Card
+      className={cn(
+        "group relative overflow-hidden transition-all duration-300 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.03]",
+        accentClass
+      )}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <CardHeader className="flex flex-row items-center gap-4 pb-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground transition-transform duration-200 group-hover:scale-105">
           {icon}
         </div>
-        <div className="flex-1 space-y-1">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <CardTitle className="font-heading text-base font-semibold">
+            {title}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </div>
         <Badge
           variant={connected ? "default" : "secondary"}
           className={cn(
-            "gap-1",
-            connected && "bg-primary/15 text-primary border border-primary/30"
+            "gap-1 shrink-0 text-[11px]",
+            connected && "bg-primary/10 text-primary border border-primary/20"
           )}
         >
           {connected ? (
@@ -51,21 +58,22 @@ export function ConnectionCard({
           {connected ? "Connected" : "Not connected"}
         </Badge>
       </CardHeader>
-      <CardContent className="pt-2">
+      <CardContent className="pt-0">
         {connected && detail && (
-          <p className="mb-4 text-sm text-muted-foreground">
-            Signed in as <span className="font-medium text-foreground">{detail}</span>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Signed in as{" "}
+            <span className="font-medium text-foreground">{detail}</span>
           </p>
         )}
         <a
           href={connectHref}
           className={cn(
             buttonVariants({ variant: connected ? "secondary" : "default" }),
-            "w-full"
+            "w-full gap-2 transition-transform duration-150 active:scale-[0.98]"
           )}
         >
           {connected ? "Reconnect" : `Connect ${title}`}
-          <ExternalLink className="ml-2 h-3.5 w-3.5" />
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </CardContent>
     </Card>

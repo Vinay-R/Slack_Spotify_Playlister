@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Hash, Search, Loader2, Music } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Channel {
   id: string;
@@ -76,30 +76,30 @@ export function ChannelList({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <Input
             placeholder="Search channels..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 transition-all duration-150 focus:border-primary/30"
           />
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={toggleAll}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             {allSelected ? "Deselect all" : "Select all"}
           </button>
           <Button
             onClick={handleCreate}
             disabled={selected.size === 0 || creating}
-            className="gap-2"
+            className="gap-2 transition-transform duration-150 active:scale-[0.98]"
           >
             {creating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Music className="h-4 w-4" />
+              <Music className="h-3.5 w-3.5" />
             )}
             Create {selected.size > 0 ? `${selected.size} ` : ""}Playlist
             {selected.size !== 1 ? "s" : ""}
@@ -107,53 +107,55 @@ export function ChannelList({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {filtered.length} channel{filtered.length !== 1 ? "s" : ""} in{" "}
         <span className="font-medium text-foreground">{teamName}</span>
       </p>
 
-      <div className="grid gap-2">
-        {filtered.map((ch) => (
-          <Card
+      <div className="space-y-1">
+        {filtered.map((ch, i) => (
+          <button
             key={ch.id}
-            className={`cursor-pointer transition-colors ${
-              ch.tracked
-                ? "border-primary/20 bg-primary/5"
-                : selected.has(ch.id)
-                  ? "border-primary/40 bg-primary/10"
-                  : "hover:bg-accent/50"
-            }`}
+            type="button"
+            disabled={ch.tracked}
             onClick={() => !ch.tracked && toggleChannel(ch.id)}
+            className={cn(
+              "fade-in-up flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150",
+              ch.tracked
+                ? "bg-primary/[0.04] cursor-default"
+                : selected.has(ch.id)
+                  ? "bg-primary/10 ring-1 ring-primary/20"
+                  : "hover:bg-accent/50 active:bg-accent/70"
+            )}
+            style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
           >
-            <CardContent className="flex items-center gap-3 py-3">
-              {ch.tracked ? (
-                <div className="flex h-5 w-5 items-center justify-center">
-                  <Music className="h-4 w-4 text-primary" />
-                </div>
-              ) : (
-                <Checkbox
-                  checked={selected.has(ch.id)}
-                  onCheckedChange={() => toggleChannel(ch.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              )}
-              <Hash className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{ch.name}</span>
-              {ch.tracked && (
-                <Badge variant="secondary" className="text-xs">
-                  Playlist created
-                </Badge>
-              )}
-              <span className="ml-auto text-xs text-muted-foreground">
-                {ch.memberCount} member{ch.memberCount !== 1 ? "s" : ""}
-              </span>
-            </CardContent>
-          </Card>
+            {ch.tracked ? (
+              <div className="flex h-4 w-4 items-center justify-center">
+                <Music className="h-3.5 w-3.5 text-primary" />
+              </div>
+            ) : (
+              <Checkbox
+                checked={selected.has(ch.id)}
+                onCheckedChange={() => toggleChannel(ch.id)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+            <Hash className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <span className="text-sm font-medium">{ch.name}</span>
+            {ch.tracked && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                Playlist created
+              </Badge>
+            )}
+            <span className="ml-auto text-[11px] text-muted-foreground/60 tabular-nums">
+              {ch.memberCount}
+            </span>
+          </button>
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <div className="py-12 text-center text-muted-foreground">
+        <div className="py-16 text-center text-sm text-muted-foreground">
           {search
             ? "No channels match your search."
             : "No channels found in this workspace."}

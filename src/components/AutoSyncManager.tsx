@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { RefreshCw, Clock, Timer } from "lucide-react";
+import { RefreshCw, Clock, Timer, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SYNC_INTERVALS = [
   { label: "Every hour", value: 3600000 },
@@ -12,7 +13,7 @@ const SYNC_INTERVALS = [
 ] as const;
 
 const STORAGE_KEY = "slack-playlister-sync-interval";
-const DEFAULT_INTERVAL = 86400000; // 1 day
+const DEFAULT_INTERVAL = 86400000;
 
 function formatTimeUntil(ms: number): string {
   if (ms <= 0) return "now";
@@ -31,7 +32,10 @@ interface AutoSyncManagerProps {
   onSyncTriggered: () => void;
 }
 
-export function AutoSyncManager({ lastSyncedAt, onSyncTriggered }: AutoSyncManagerProps) {
+export function AutoSyncManager({
+  lastSyncedAt,
+  onSyncTriggered,
+}: AutoSyncManagerProps) {
   const [interval, setIntervalValue] = useState<number>(DEFAULT_INTERVAL);
   const [syncing, setSyncing] = useState(false);
   const [nextSyncIn, setNextSyncIn] = useState<number | null>(null);
@@ -109,25 +113,25 @@ export function AutoSyncManager({ lastSyncedAt, onSyncTriggered }: AutoSyncManag
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-          <Timer className="h-4 w-4 text-primary" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+          <Timer className="h-3.5 w-3.5 text-primary" />
         </div>
         <div>
           <p className="text-sm font-medium">Auto-Sync</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             {interval === 0 ? (
               "Disabled — sync manually"
             ) : syncing ? (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-primary">
                 <RefreshCw className="h-3 w-3 animate-spin" />
                 Syncing now...
               </span>
             ) : nextSyncIn !== null ? (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Next sync in {formatTimeUntil(nextSyncIn)}
+                Next in {formatTimeUntil(nextSyncIn)}
               </span>
             ) : (
               "Waiting..."
@@ -136,17 +140,25 @@ export function AutoSyncManager({ lastSyncedAt, onSyncTriggered }: AutoSyncManag
         </div>
       </div>
 
-      <select
-        value={interval}
-        onChange={handleIntervalChange}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-      >
-        {SYNC_INTERVALS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          value={interval}
+          onChange={handleIntervalChange}
+          className={cn(
+            "h-8 appearance-none rounded-lg border border-border/60 bg-secondary/50 pl-3 pr-8 text-xs font-medium",
+            "ring-offset-background transition-colors duration-150",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            "hover:bg-secondary/80"
+          )}
+        >
+          {SYNC_INTERVALS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+      </div>
     </div>
   );
 }

@@ -50,20 +50,27 @@ export default function ChannelsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading channels from Slack...</p>
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
+          Loading channels from Slack...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <AlertCircle className="h-10 w-10 text-destructive" />
-        <p className="text-lg font-medium">Could not load channels</p>
-        <p className="text-muted-foreground">{error}</p>
-        <Link href="/connect" className={buttonVariants({ variant: "secondary" })}>
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="font-heading text-base font-medium">
+          Could not load channels
+        </p>
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Link
+          href="/connect"
+          className={buttonVariants({ variant: "secondary" })}
+        >
           Connect Slack first
         </Link>
       </div>
@@ -72,19 +79,24 @@ export default function ChannelsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Select Channels</h1>
-        <p className="mt-2 text-muted-foreground">
+      <div className="fade-in-up stagger-1">
+        <h1 className="font-heading text-3xl font-bold tracking-tight">
+          Select Channels
+        </h1>
+        <p className="mt-2 text-[15px] text-muted-foreground max-w-lg">
           Choose the Slack channels you want to create Spotify playlists for.
-          We&apos;ll scan each channel for Spotify links and build your playlists.
+          We&apos;ll scan each channel for Spotify links and build your
+          playlists.
         </p>
       </div>
 
-      <ChannelList
-        channels={channels}
-        teamName={teamName}
-        onCreatePlaylists={handleCreatePlaylists}
-      />
+      <div className="fade-in-up stagger-2">
+        <ChannelList
+          channels={channels}
+          teamName={teamName}
+          onCreatePlaylists={handleCreatePlaylists}
+        />
+      </div>
     </div>
   );
 }

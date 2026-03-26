@@ -14,6 +14,7 @@ import {
   Circle,
   Disc3,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Status {
   slack: { connected: boolean; teamName?: string };
@@ -38,128 +39,126 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Disc3 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <Disc3 className="h-8 w-8 text-primary" style={{ animation: "spin-slow 2s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">
+    <div className="space-y-10">
+      <div className="fade-in-up stagger-1">
+        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
           Slack Playlister
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          Automatically create Spotify playlists from music links shared in your
-          Slack channels. Connect, select, and listen.
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground max-w-xl">
+          Automatically create Spotify playlists from music shared in your Slack
+          channels. Connect, select, listen.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Slack
-            </CardTitle>
-            {status?.slack.connected ? (
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-            ) : (
-              <Circle className="h-4 w-4 text-muted-foreground" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {status?.slack.connected ? status.slack.teamName : "---"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {status?.slack.connected ? "Workspace connected" : "Not connected"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Spotify
-            </CardTitle>
-            {status?.spotify.connected ? (
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-            ) : (
-              <Circle className="h-4 w-4 text-muted-foreground" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {status?.spotify.connected ? status.spotify.displayName : "---"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {status?.spotify.connected ? "Account connected" : "Not connected"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Channels
-            </CardTitle>
-            <Hash className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {status?.trackedChannels || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Channels tracked
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tracks
-            </CardTitle>
-            <Music className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {status?.totalTracks || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Songs in playlists
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 fade-in-up stagger-2">
+        {[
+          {
+            label: "Slack",
+            value: status?.slack.connected ? status.slack.teamName : "---",
+            sub: status?.slack.connected ? "Connected" : "Not connected",
+            icon: status?.slack.connected ? CheckCircle2 : Circle,
+            active: status?.slack.connected,
+          },
+          {
+            label: "Spotify",
+            value: status?.spotify.connected
+              ? status.spotify.displayName
+              : "---",
+            sub: status?.spotify.connected ? "Connected" : "Not connected",
+            icon: status?.spotify.connected ? CheckCircle2 : Circle,
+            active: status?.spotify.connected,
+          },
+          {
+            label: "Channels",
+            value: String(status?.trackedChannels || 0),
+            sub: "Tracked",
+            icon: Hash,
+            active: false,
+          },
+          {
+            label: "Tracks",
+            value: String(status?.totalTracks || 0),
+            sub: "In playlists",
+            icon: Music,
+            active: false,
+          },
+        ].map((stat) => (
+          <Card
+            key={stat.label}
+            className="group relative overflow-hidden transition-all duration-200 hover:border-primary/20"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {stat.label}
+              </CardTitle>
+              <stat.icon
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  stat.active ? "text-primary" : "text-muted-foreground/60"
+                )}
+              />
+            </CardHeader>
+            <CardContent>
+              <div className="font-heading text-2xl font-bold tracking-tight">
+                {stat.value}
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
+      <Card className="fade-in-up stagger-3 overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="font-heading text-base font-semibold">
+            Quick Actions
+          </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
+        <CardContent className="flex flex-wrap gap-2.5">
           {!bothConnected ? (
-            <Link href="/connect" className={buttonVariants()}>
+            <Link
+              href="/connect"
+              className={cn(buttonVariants(), "gap-2 transition-transform duration-150 active:scale-[0.98]")}
+            >
               Connect Services
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           ) : !hasPlaylists ? (
-            <Link href="/channels" className={buttonVariants()}>
-              <Hash className="mr-2 h-4 w-4" />
+            <Link
+              href="/channels"
+              className={cn(buttonVariants(), "gap-2 transition-transform duration-150 active:scale-[0.98]")}
+            >
+              <Hash className="h-3.5 w-3.5" />
               Select Channels
             </Link>
           ) : (
             <>
               <SyncButton label="Sync All Playlists" variant="default" />
-              <Link href="/channels" className={buttonVariants({ variant: "secondary" })}>
-                <Hash className="mr-2 h-4 w-4" />
+              <Link
+                href="/channels"
+                className={cn(
+                  buttonVariants({ variant: "secondary" }),
+                  "gap-2"
+                )}
+              >
+                <Hash className="h-3.5 w-3.5" />
                 Add Channels
               </Link>
-              <Link href="/playlists" className={buttonVariants({ variant: "outline" })}>
-                <ListMusic className="mr-2 h-4 w-4" />
+              <Link
+                href="/playlists"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "gap-2"
+                )}
+              >
+                <ListMusic className="h-3.5 w-3.5" />
                 View Playlists
               </Link>
             </>
@@ -167,42 +166,52 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Getting Started (if not both connected) */}
       {!bothConnected && (
-        <Card className="border-dashed">
-          <CardContent className="py-8">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                <Disc3 className="h-8 w-8 text-primary" />
-              </div>
-              <div className="space-y-2 max-w-md">
-                <h2 className="text-xl font-semibold">Get started</h2>
-                <p className="text-muted-foreground">
-                  Connect your Slack workspace and Spotify account to start
-                  creating playlists from your team&apos;s shared music.
-                </p>
-              </div>
-              <div className="flex gap-4 mt-2">
-                <div className="flex items-center gap-2 text-sm">
-                  {status?.slack.connected ? (
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  Slack
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {status?.spotify.connected ? (
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  Spotify
-                </div>
-              </div>
+        <div className="fade-in-up stagger-4 rounded-xl border border-dashed border-border/60 bg-surface/50 p-8">
+          <div className="flex flex-col items-center text-center gap-5">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10"
+              style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
+            >
+              <Disc3 className="h-7 w-7 text-primary" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-1.5 max-w-sm">
+              <h2 className="font-heading text-lg font-semibold">
+                Get started
+              </h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Connect your Slack workspace and Spotify account to start
+                creating playlists from your team&apos;s shared music.
+              </p>
+            </div>
+            <div className="flex gap-5 mt-1">
+              {[
+                { label: "Slack", done: status?.slack.connected },
+                { label: "Spotify", done: status?.spotify.connected },
+              ].map((svc) => (
+                <div
+                  key={svc.label}
+                  className="flex items-center gap-1.5 text-sm"
+                >
+                  {svc.done ? (
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-muted-foreground/50" />
+                  )}
+                  <span
+                    className={cn(
+                      svc.done
+                        ? "text-foreground font-medium"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {svc.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

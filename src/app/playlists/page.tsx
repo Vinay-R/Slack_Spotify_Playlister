@@ -7,6 +7,7 @@ import { AutoSyncManager } from "@/components/AutoSyncManager";
 import { buttonVariants } from "@/components/ui/button";
 import { Loader2, ListMusic } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface Playlist {
   id: string;
@@ -37,20 +38,23 @@ export default function PlaylistsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading playlists...</p>
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading playlists...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between fade-in-up stagger-1">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Your Playlists</h1>
-          <p className="mt-2 text-muted-foreground">
-            {playlists.length} playlist{playlists.length !== 1 ? "s" : ""} created from Slack channels.
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            Your Playlists
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {playlists.length} playlist{playlists.length !== 1 ? "s" : ""}{" "}
+            created from Slack channels.
           </p>
         </div>
         {playlists.length > 0 && (
@@ -63,46 +67,60 @@ export default function PlaylistsPage() {
       </div>
 
       {playlists.length > 0 && (
-        <AutoSyncManager
-          lastSyncedAt={
-            playlists.reduce<string | null>((latest, p) => {
+        <div className="fade-in-up stagger-2">
+          <AutoSyncManager
+            lastSyncedAt={playlists.reduce<string | null>((latest, p) => {
               if (!p.lastSyncedAt) return latest;
               if (!latest) return p.lastSyncedAt;
               return p.lastSyncedAt > latest ? p.lastSyncedAt : latest;
-            }, null)
-          }
-          onSyncTriggered={fetchPlaylists}
-        />
+            }, null)}
+            onSyncTriggered={fetchPlaylists}
+          />
+        </div>
       )}
 
       {playlists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
-            <ListMusic className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-24 gap-4 fade-in">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
+            <ListMusic className="h-7 w-7 text-muted-foreground" />
           </div>
-          <p className="text-lg font-medium">No playlists yet</p>
-          <p className="text-muted-foreground text-center max-w-md">
-            Select some Slack channels to scan for Spotify links and create your first playlists.
+          <p className="font-heading text-base font-medium">
+            No playlists yet
           </p>
-          <Link href="/channels" className={buttonVariants()}>
+          <p className="text-sm text-muted-foreground text-center max-w-sm">
+            Select some Slack channels to scan for Spotify links and create your
+            first playlists.
+          </p>
+          <Link
+            href="/channels"
+            className={cn(
+              buttonVariants(),
+              "transition-transform duration-150 active:scale-[0.98]"
+            )}
+          >
             Select Channels
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {playlists.map((p) => (
-            <PlaylistCard
+        <div className="space-y-2 fade-in-up stagger-3">
+          {playlists.map((p, i) => (
+            <div
               key={p.id}
-              id={p.id}
-              channelId={p.channelId}
-              channelName={p.channelName}
-              teamName={p.teamName}
-              spotifyPlaylistUrl={p.spotifyPlaylistUrl}
-              trackCount={p.trackCount}
-              lastSyncedAt={p.lastSyncedAt}
-              onSyncComplete={fetchPlaylists}
-              onDelete={fetchPlaylists}
-            />
+              className="fade-in-up"
+              style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
+            >
+              <PlaylistCard
+                id={p.id}
+                channelId={p.channelId}
+                channelName={p.channelName}
+                teamName={p.teamName}
+                spotifyPlaylistUrl={p.spotifyPlaylistUrl}
+                trackCount={p.trackCount}
+                lastSyncedAt={p.lastSyncedAt}
+                onSyncComplete={fetchPlaylists}
+                onDelete={fetchPlaylists}
+              />
+            </div>
           ))}
         </div>
       )}

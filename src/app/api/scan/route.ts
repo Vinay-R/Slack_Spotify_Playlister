@@ -1,39 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { fetchChannelHistory } from "@/lib/slack";
-import { extractSpotifyLinks, spotifyTrackUri } from "@/lib/url-parser";
+import { fetchChannelHistory, getSlackClient } from "@/lib/slack";
+import { collectTrackUris } from "@/lib/url-parser";
 import {
   createPlaylist,
   addTracksToPlaylist,
-  getAlbumTrackUris,
   checkPlaylistExists,
 } from "@/lib/spotify";
-import { WebClient } from "@slack/web-api";
 import { getUser } from "@/lib/auth";
 import { z } from "zod";
 
 const scanBodySchema = z.object({
   channelIds: z.array(z.string().min(1)).min(1, "No channels selected"),
 });
-
-async function collectTrackUris(
-  messages: Array<{ text: string }>,
-  userId: string
-): Promise<string[]> {
-  const allUris: string[] = [];
-  for (const msg of messages) {
-    const links = extractSpotifyLinks(msg.text);
-    for (const link of links) {
-      if (link.type === "track") {
-        allUris.push(spotifyTrackUri(link.id));
-      } else if (link.type === "album") {
-        const albumTracks = await getAlbumTrackUris(link.id, userId);
-        allUris.push(...albumTracks);
-      }
-    }
-  }
-  return [...new Set(allUris)];
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,7 +87,7 @@ export async function POST(request: NextRequest) {
         if (existing) {
           await prisma.playlistTrack.deleteMany({ where: { channelId: existing.id } });
         }
-        const client = new WebClient(slack.accessToken);
+        const client = getSlackClient(slack.accessToken);
         const info = await client.conversations.info({ channel: channelId });
         const channelName = info.channel?.name || channelId;
 

@@ -27,39 +27,44 @@ function ConnectContent() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Connect Services</h1>
-        <p className="mt-2 text-muted-foreground">
+    <div className="space-y-10">
+      <div className="fade-in-up stagger-1">
+        <h1 className="font-heading text-3xl font-bold tracking-tight">
+          Connect Services
+        </h1>
+        <p className="mt-2 text-[15px] text-muted-foreground">
           Link your Slack workspace and Spotify account to get started.
         </p>
       </div>
 
       {(slackConnected || spotifyConnected) && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
+        <div className="fade-in rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
           {slackConnected && "Slack workspace connected successfully!"}
           {spotifyConnected && "Spotify account connected successfully!"}
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="fade-in rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           Connection failed: {error}
         </div>
       )}
 
       {loading ? (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {[1, 2].map((i) => (
-            <div key={i} className="h-48 animate-pulse rounded-xl bg-secondary" />
+            <div
+              key={i}
+              className="h-52 animate-pulse rounded-xl bg-secondary/50"
+            />
           ))}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 fade-in-up stagger-2">
           <ConnectionCard
             title="Slack"
-            description="Access your workspace channels and message history"
-            icon={<Hash className="h-6 w-6" />}
+            description="Access your workspace channels and messages"
+            icon={<Hash className="h-5 w-5" />}
             connected={status?.slack.connected || false}
             detail={status?.slack.teamName}
             connectHref="/api/auth/slack"
@@ -67,7 +72,7 @@ function ConnectContent() {
           <ConnectionCard
             title="Spotify"
             description="Create and manage playlists in your account"
-            icon={<Music className="h-6 w-6" />}
+            icon={<Music className="h-5 w-5" />}
             connected={status?.spotify.connected || false}
             detail={status?.spotify.displayName}
             connectHref="/api/auth/spotify"
@@ -75,9 +80,9 @@ function ConnectContent() {
         </div>
       )}
 
-      <div className="rounded-lg border bg-card p-6">
-        <h2 className="text-lg font-semibold">How it works</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <div className="fade-in-up stagger-3 rounded-xl border border-border/50 bg-card p-6">
+        <h2 className="font-heading text-base font-semibold">How it works</h2>
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
           {[
             {
               step: "1",
@@ -96,12 +101,14 @@ function ConnectContent() {
             },
           ].map(({ step, title, desc }) => (
             <div key={step} className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {step}
               </div>
-              <div>
-                <h3 className="font-medium">{title}</h3>
-                <p className="text-sm text-muted-foreground">{desc}</p>
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-medium">{title}</h3>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {desc}
+                </p>
               </div>
             </div>
           ))}
@@ -115,9 +122,12 @@ export default function ConnectPage() {
   return (
     <Suspense
       fallback={
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {[1, 2].map((i) => (
-            <div key={i} className="h-48 animate-pulse rounded-xl bg-secondary" />
+            <div
+              key={i}
+              className="h-52 animate-pulse rounded-xl bg-secondary/50"
+            />
           ))}
         </div>
       }

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchChannelHistory } from "@/lib/slack";
-import { extractSpotifyLinks, spotifyTrackUri } from "@/lib/url-parser";
+import { collectTrackUris } from "@/lib/url-parser";
 import {
   addTracksToPlaylist,
-  getAlbumTrackUris,
   checkPlaylistExists,
   createPlaylist,
 } from "@/lib/spotify";
@@ -91,19 +90,7 @@ export async function POST(request: NextRequest) {
           slack.accessToken,
           channel.channelId
         );
-        const allUris: string[] = [];
-        for (const msg of fullMessages) {
-          const links = extractSpotifyLinks(msg.text);
-          for (const link of links) {
-            if (link.type === "track") {
-              allUris.push(spotifyTrackUri(link.id));
-            } else if (link.type === "album") {
-              const albumTracks = await getAlbumTrackUris(link.id, user.id);
-              allUris.push(...albumTracks);
-            }
-          }
-        }
-        const uniqueUris = [...new Set(allUris)];
+        const uniqueUris = await collectTrackUris(fullMessages, user.id);
 
         if (uniqueUris.length > 0) {
           await addTracksToPlaylist(playlistId, uniqueUris, user.id);
@@ -132,19 +119,7 @@ export async function POST(request: NextRequest) {
           oldest
         );
 
-        const allTrackUris: string[] = [];
-        for (const msg of messages) {
-          const links = extractSpotifyLinks(msg.text);
-          for (const link of links) {
-            if (link.type === "track") {
-              allTrackUris.push(spotifyTrackUri(link.id));
-            } else if (link.type === "album") {
-              const albumTracks = await getAlbumTrackUris(link.id, user.id);
-              allTrackUris.push(...albumTracks);
-            }
-          }
-        }
-        const uniqueUris = [...new Set(allTrackUris)];
+        const uniqueUris = await collectTrackUris(messages, user.id);
 
         const existingTracks = await prisma.playlistTrack.findMany({
           where: { channelId: channel.id },

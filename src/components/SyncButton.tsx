@@ -9,7 +9,9 @@ interface SyncButtonProps {
   label?: string;
   variant?: "default" | "secondary" | "outline";
   size?: "default" | "sm" | "lg" | "icon";
-  onComplete?: (results: Array<{ channelName: string; newTracks: number }>) => void;
+  onComplete?: (
+    results: Array<{ channelName: string; newTracks: number }>
+  ) => void;
 }
 
 export function SyncButton({
@@ -44,12 +46,12 @@ export function SyncButton({
       size={size}
       onClick={handleSync}
       disabled={syncing}
-      className="gap-2"
+      className="gap-1.5 transition-transform duration-150 active:scale-[0.97]"
     >
       {syncing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (
-        <RefreshCw className="h-4 w-4" />
+        <RefreshCw className="h-3.5 w-3.5" />
       )}
       {label}
     </Button>

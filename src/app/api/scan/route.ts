@@ -8,6 +8,7 @@ import {
   checkPlaylistExists,
 } from "@/lib/spotify";
 import { getUser } from "@/lib/auth";
+import { getSlackToken } from "@/lib/slack-token";
 import { z } from "zod";
 
 const scanBodySchema = z.object({
@@ -27,15 +28,14 @@ export async function POST(request: NextRequest) {
     }
     const { channelIds } = parseResult.data;
 
-    const slack = await prisma.slackConnection.findFirst({
-      where: { userId: user.id },
-    });
+    const slack = await getSlackToken(user.id).catch(() => null);
     if (!slack) {
       return NextResponse.json({ error: "No Slack workspace connected" }, { status: 400 });
     }
 
     const spotify = await prisma.spotifyConnection.findFirst({
       where: { userId: user.id },
+      select: { id: true },
     });
     if (!spotify) {
       return NextResponse.json({ error: "No Spotify account connected" }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const results: Array<{ channelName: string; tracksAdded: number; playlistUrl: string }> = [];
     for (const channelId of channelIds) {
-      const messages = await fetchChannelHistory(slack.accessToken, channelId);
+      const messages = await fetchChannelHistory(slack.token, channelId);
       const uniqueUris = await collectTrackUris(messages, user.id);
 
       const existing = await prisma.trackedChannel.findUnique({
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         if (existing) {
           await prisma.playlistTrack.deleteMany({ where: { channelId: existing.id } });
         }
-        const client = getSlackClient(slack.accessToken);
+        const client = getSlackClient(slack.token);
         const info = await client.conversations.info({ channel: channelId });
         const channelName = info.channel?.name || channelId;
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             channelId,
             channelName,
-            slackConnectionId: slack.id,
+            slackConnectionId: slack.connectionId,
             spotifyPlaylistId: playlist.id,
             spotifyPlaylistUrl: playlist.url,
             lastSyncedAt: new Date(),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifySignedState } from "@/lib/oauth-state";
+import { saveSlackToken } from "@/lib/slack-token";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
       redirect_uri: redirectUri,
     });
 
+    console.log("Slack token exchange redirect_uri:", redirectUri);
+
     const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
     const data = await tokenRes.json();
 
     if (!data.ok) {
+      console.error("Slack token exchange failed:", data.error, data);
       return NextResponse.redirect(
         new URL(`/connect?error=${data.error}`, request.url)
       );
@@ -63,18 +66,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await prisma.slackConnection.upsert({
-      where: { userId_teamId: { userId, teamId: data.team.id } },
-      update: {
-        accessToken: userToken,
-        teamName: data.team.name,
-      },
-      create: {
-        userId,
-        teamId: data.team.id,
-        teamName: data.team.name,
-        accessToken: userToken,
-      },
+    await saveSlackToken({
+      userId,
+      teamId: data.team.id,
+      teamName: data.team.name,
+      plainToken: userToken,
     });
 
     return NextResponse.redirect(

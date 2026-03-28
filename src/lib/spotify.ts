@@ -1,10 +1,7 @@
-import { prisma } from "./prisma";
+import { getSpotifyToken, updateSpotifyTokens } from "./spotify-token";
 
 async function getValidToken(userId: string): Promise<string> {
-  const conn = await prisma.spotifyConnection.findFirst({
-    where: { userId },
-  });
-  if (!conn) throw new Error("No Spotify connection found");
+  const conn = await getSpotifyToken(userId);
 
   if (conn.expiresAt > new Date()) {
     return conn.accessToken;
@@ -31,13 +28,11 @@ async function getValidToken(userId: string): Promise<string> {
 
   const expiresAt = new Date(Date.now() + data.expires_in * 1000);
 
-  await prisma.spotifyConnection.update({
-    where: { id: conn.id },
-    data: {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token || conn.refreshToken,
-      expiresAt,
-    },
+  await updateSpotifyTokens({
+    connectionId: conn.connectionId,
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token || undefined,
+    expiresAt,
   });
 
   return data.access_token;

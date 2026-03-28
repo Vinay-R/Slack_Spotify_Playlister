@@ -8,6 +8,7 @@ import {
   createPlaylist,
 } from "@/lib/spotify";
 import { getUser } from "@/lib/auth";
+import { getSlackToken } from "@/lib/slack-token";
 import { z } from "zod";
 
 const syncBodySchema = z.object({
@@ -27,9 +28,7 @@ export async function POST(request: NextRequest) {
     }
     const { channelIds } = parseResult.data;
 
-    const slack = await prisma.slackConnection.findFirst({
-      where: { userId: user.id },
-    });
+    const slack = await getSlackToken(user.id).catch(() => null);
     if (!slack) {
       return NextResponse.json(
         { error: "No Slack workspace connected" },
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
         });
 
         const fullMessages = await fetchChannelHistory(
-          slack.accessToken,
+          slack.token,
           channel.channelId
         );
         const uniqueUris = await collectTrackUris(fullMessages, user.id);
@@ -114,7 +113,7 @@ export async function POST(request: NextRequest) {
           : undefined;
 
         const messages = await fetchChannelHistory(
-          slack.accessToken,
+          slack.token,
           channel.channelId,
           oldest
         );

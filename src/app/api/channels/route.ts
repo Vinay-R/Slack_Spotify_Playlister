@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { listChannels } from "@/lib/slack";
 import { getUser } from "@/lib/auth";
+import { getSlackToken } from "@/lib/slack-token";
 
 export async function GET() {
   try {
     const user = await getUser();
 
-    const slack = await prisma.slackConnection.findFirst({
-      where: { userId: user.id },
-    });
+    const slack = await getSlackToken(user.id).catch(() => null);
     if (!slack) {
       return NextResponse.json(
         { error: "No Slack workspace connected" },
@@ -17,10 +16,10 @@ export async function GET() {
       );
     }
 
-    const channels = await listChannels(slack.accessToken);
+    const channels = await listChannels(slack.token);
 
     const tracked = await prisma.trackedChannel.findMany({
-      where: { slackConnectionId: slack.id, userId: user.id },
+      where: { slackConnectionId: slack.connectionId, userId: user.id },
       select: { channelId: true },
     });
     const trackedIds = new Set(tracked.map((t) => t.channelId));
@@ -30,7 +29,7 @@ export async function GET() {
         ...ch,
         tracked: trackedIds.has(ch.id),
       })),
-      teamName: slack.teamName,
+      teamName: slack.teamName ?? "",
     });
   } catch (err) {
     console.error("Channels GET error:", err);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifySignedState } from "@/lib/oauth-state";
+import { saveSpotifyToken } from "@/lib/spotify-token";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -81,24 +81,13 @@ export async function GET(request: NextRequest) {
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    await prisma.spotifyConnection.upsert({
-      where: {
-        userId_spotifyUserId: { userId, spotifyUserId: profile.id },
-      },
-      update: {
-        displayName: profile.display_name || profile.id,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresAt,
-      },
-      create: {
-        userId,
-        spotifyUserId: profile.id,
-        displayName: profile.display_name || profile.id,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresAt,
-      },
+    await saveSpotifyToken({
+      userId,
+      spotifyUserId: profile.id,
+      displayName: profile.display_name || profile.id,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt,
     });
 
     return NextResponse.redirect(

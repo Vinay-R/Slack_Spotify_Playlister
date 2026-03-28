@@ -8,26 +8,35 @@ datasource db {
 }
 
 model SlackConnection {
-  id          String   @id @default(cuid())
-  userId      String
-  teamId      String
-  teamName    String
-  accessToken String
-  createdAt   DateTime @default(now())
-  channels    TrackedChannel[]
+  id                    String   @id @default(cuid())
+  userId                String
+  teamId                String
+  teamName              String
+  /// @deprecated Legacy plaintext column — kept temporarily for backfill migration.
+  /// All new writes MUST use accessTokenEncrypted via saveSlackToken().
+  accessToken           String   @default("")
+  accessTokenEncrypted  String?
+  tokenKeyVersion       Int?
+  createdAt             DateTime @default(now())
+  channels              TrackedChannel[]
 
   @@unique([userId, teamId])
 }
 
 model SpotifyConnection {
-  id            String   @id @default(cuid())
-  userId        String
-  spotifyUserId String
-  displayName   String
-  accessToken   String
-  refreshToken  String
-  expiresAt     DateTime
-  createdAt     DateTime @default(now())
+  id                     String   @id @default(cuid())
+  userId                 String
+  spotifyUserId          String
+  displayName            String
+  /// @deprecated Legacy plaintext — kept temporarily for backfill. Use accessTokenEncrypted.
+  accessToken            String   @default("")
+  /// @deprecated Legacy plaintext — kept temporarily for backfill. Use refreshTokenEncrypted.
+  refreshToken           String   @default("")
+  accessTokenEncrypted   String?
+  refreshTokenEncrypted  String?
+  tokenKeyVersion        Int?
+  expiresAt              DateTime
+  createdAt              DateTime @default(now())
 
   @@unique([userId, spotifyUserId])
 }

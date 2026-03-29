@@ -1,5 +1,4 @@
 import { FileQuestion } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function NotFound() {
@@ -14,7 +13,10 @@ export default function NotFound() {
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
       </div>
-      <Link href="/" className={buttonVariants({ variant: "secondary" })}>
+      <Link
+        href="/"
+        className="inline-flex h-9 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+      >
         Go home
       </Link>
     </div>

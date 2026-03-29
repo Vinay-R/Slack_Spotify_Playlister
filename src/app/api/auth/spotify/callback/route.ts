@@ -50,18 +50,18 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      console.error("Spotify token exchange failed:", tokenRes.status, text);
+      console.error("Spotify token exchange failed:", tokenRes.status);
       return NextResponse.redirect(
-        new URL(`/connect?error=${encodeURIComponent("spotify_token_error: " + text.slice(0, 100))}`, request.url)
+        new URL("/connect?error=spotify_token_exchange_failed", request.url)
       );
     }
 
     const tokenData = await tokenRes.json();
 
     if (tokenData.error) {
+      console.error("Spotify token data error:", tokenData.error);
       return NextResponse.redirect(
-        new URL(`/connect?error=${tokenData.error}`, request.url)
+        new URL("/connect?error=spotify_authorization_failed", request.url)
       );
     }
 
@@ -70,10 +70,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profileRes.ok) {
-      const text = await profileRes.text();
-      console.error("Spotify profile fetch failed:", profileRes.status, text);
+      console.error("Spotify profile fetch failed:", profileRes.status);
       return NextResponse.redirect(
-        new URL(`/connect?error=${encodeURIComponent("spotify_profile_error: " + text.slice(0, 100))}`, request.url)
+        new URL("/connect?error=spotify_profile_fetch_failed", request.url)
       );
     }
 
@@ -94,10 +93,9 @@ export async function GET(request: NextRequest) {
       new URL("/connect?spotify=connected", request.url)
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("Spotify OAuth callback error:", msg);
+    console.error("Spotify OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL(`/connect?error=${encodeURIComponent("token_exchange_failed: " + msg)}`, request.url)
+      new URL("/connect?error=spotify_connection_failed", request.url)
     );
   }
 }

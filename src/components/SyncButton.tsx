@@ -22,9 +22,11 @@ export function SyncButton({
   onComplete,
 }: SyncButtonProps) {
   const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSync = async () => {
     setSyncing(true);
+    setError(null);
     try {
       const res = await fetch("/api/sync", {
         method: "POST",
@@ -32,28 +34,35 @@ export function SyncButton({
         body: JSON.stringify({ channelIds }),
       });
       const data = await res.json();
-      if (res.ok && onComplete) {
-        onComplete(data.results);
+      if (!res.ok) {
+        setError(data.error || "Sync failed");
+        return;
       }
+      if (onComplete) onComplete(data.results);
+    } catch {
+      setError("Sync failed — check your connection");
     } finally {
       setSyncing(false);
     }
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleSync}
-      disabled={syncing}
-      className="gap-1.5 transition-transform duration-150 active:scale-[0.97]"
-    >
-      {syncing ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <RefreshCw className="h-3.5 w-3.5" />
-      )}
-      {label}
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        variant={error ? "destructive" : variant}
+        size={size}
+        onClick={handleSync}
+        disabled={syncing}
+        className="gap-1.5 transition-transform duration-150 active:scale-[0.97]"
+        title={error || undefined}
+      >
+        {syncing ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <RefreshCw className="h-3.5 w-3.5" />
+        )}
+        {error ? "Retry" : label}
+      </Button>
+    </div>
   );
 }

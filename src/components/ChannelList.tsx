@@ -31,6 +31,7 @@ export function ChannelList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = channels.filter(
     (ch) =>
@@ -60,8 +61,13 @@ export function ChannelList({
   const handleCreate = async () => {
     if (selected.size === 0) return;
     setCreating(true);
+    setError(null);
     try {
       await onCreatePlaylists(Array.from(selected));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create playlists"
+      );
     } finally {
       setCreating(false);
     }
@@ -106,6 +112,12 @@ export function ChannelList({
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive fade-in">
+          {error}
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         {filtered.length} channel{filtered.length !== 1 ? "s" : ""} in{" "}

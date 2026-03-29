@@ -10,6 +10,18 @@ interface Status {
   spotify: { connected: boolean; displayName?: string };
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_state: "The authorization link expired. Please try again.",
+  server_misconfigured: "Server configuration error. Please contact support.",
+  auth_failed: "Authentication failed. Please try again.",
+  slack_authorization_failed: "Slack authorization was denied or failed.",
+  token_exchange_failed: "Could not complete Slack authorization. Please try again.",
+  spotify_token_exchange_failed: "Could not complete Spotify authorization. Please try again.",
+  spotify_authorization_failed: "Spotify authorization was denied or failed.",
+  spotify_profile_fetch_failed: "Could not fetch your Spotify profile. Please try again.",
+  spotify_connection_failed: "Spotify connection failed. Please try again.",
+};
+
 function ConnectContent() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,13 +29,20 @@ function ConnectContent() {
 
   const slackConnected = searchParams.get("slack") === "connected";
   const spotifyConnected = searchParams.get("spotify") === "connected";
-  const error = searchParams.get("error");
+  const errorCode = searchParams.get("error");
+  const error = errorCode
+    ? ERROR_MESSAGES[errorCode] || "Something went wrong. Please try again."
+    : null;
 
-  useEffect(() => {
+  function refreshStatus() {
     fetch("/api/status")
       .then((r) => r.json())
       .then(setStatus)
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    refreshStatus();
   }, []);
 
   return (
@@ -46,7 +65,7 @@ function ConnectContent() {
 
       {error && (
         <div className="fade-in rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          Connection failed: {error}
+          {error}
         </div>
       )}
 
@@ -68,6 +87,8 @@ function ConnectContent() {
             connected={status?.slack.connected || false}
             detail={status?.slack.teamName}
             connectHref="/api/auth/slack"
+            disconnectHref="/api/auth/slack"
+            onDisconnect={refreshStatus}
           />
           <ConnectionCard
             title="Spotify"
@@ -76,6 +97,8 @@ function ConnectContent() {
             connected={status?.spotify.connected || false}
             detail={status?.spotify.displayName}
             connectHref="/api/auth/spotify"
+            disconnectHref="/api/auth/spotify"
+            onDisconnect={refreshStatus}
           />
         </div>
       )}

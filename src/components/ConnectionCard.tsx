@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, ExternalLink } from "lucide-react";
+import { CheckCircle2, Circle, ExternalLink, Loader2, Unplug } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ConnectionCardProps {
@@ -13,6 +14,8 @@ interface ConnectionCardProps {
   connected: boolean;
   detail?: string;
   connectHref: string;
+  disconnectHref?: string;
+  onDisconnect?: () => void;
   accentClass?: string;
 }
 
@@ -23,8 +26,31 @@ export function ConnectionCard({
   connected,
   detail,
   connectHref,
+  disconnectHref,
+  onDisconnect,
   accentClass,
 }: ConnectionCardProps) {
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  async function handleDisconnect() {
+    if (!disconnectHref) return;
+    if (!confirm(`Disconnect ${title}? This will remove your connection and any tracked channels.`)) return;
+
+    setDisconnecting(true);
+    try {
+      const res = await fetch(disconnectHref, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Disconnect failed");
+      }
+      onDisconnect?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to disconnect");
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
   return (
     <Card
       className={cn(
@@ -65,16 +91,34 @@ export function ConnectionCard({
             <span className="font-medium text-foreground">{detail}</span>
           </p>
         )}
-        <a
-          href={connectHref}
-          className={cn(
-            buttonVariants({ variant: connected ? "secondary" : "default" }),
-            "w-full gap-2 transition-transform duration-150 active:scale-[0.98]"
+        <div className="flex gap-2">
+          <a
+            href={connectHref}
+            className={cn(
+              buttonVariants({ variant: connected ? "secondary" : "default" }),
+              "flex-1 gap-2 transition-transform duration-150 active:scale-[0.98]"
+            )}
+          >
+            {connected ? "Reconnect" : `Connect ${title}`}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          {connected && disconnectHref && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              title={`Disconnect ${title}`}
+              className="shrink-0 text-muted-foreground hover:text-destructive"
+            >
+              {disconnecting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unplug className="h-4 w-4" />
+              )}
+            </Button>
           )}
-        >
-          {connected ? "Reconnect" : `Connect ${title}`}
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        </div>
       </CardContent>
     </Card>
   );

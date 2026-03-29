@@ -94,6 +94,7 @@ export async function getSpotifyToken(userId: string): Promise<{
 }> {
   const conn = await prisma.spotifyConnection.findFirst({
     where: { userId },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       accessTokenEncrypted: true,

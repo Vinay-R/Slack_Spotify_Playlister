@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Disc3, Loader2, AlertCircle } from "lucide-react";
+
+export default function ResetPasswordPage() {
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) setExpired(true);
+      setChecking(false);
+    });
+  }, []);
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    await supabase.auth.signOut();
+    router.push("/login?message=password_reset");
+  }
+
+  if (checking) {
+    return (
+      <div className="relative flex min-h-[80vh] items-center justify-center -mt-10">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (expired) {
+    return (
+      <div className="relative flex min-h-[80vh] items-center justify-center -mt-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/2 top-[40%] h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.07] blur-[100px]" />
+        </div>
+
+        <div className="relative w-full max-w-sm scale-in text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+          </div>
+          <h2 className="font-heading text-2xl font-bold">Link expired</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            This password reset link has expired or is invalid. Please request a
+            new one.
+          </p>
+          <Link
+            href="/forgot-password"
+            className="mt-6 inline-block text-primary hover:text-primary/80 text-sm font-semibold transition-colors"
+          >
+            Request new reset link
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex min-h-[80vh] items-center justify-center -mt-10">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[40%] h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.07] blur-[100px]" />
+        <div className="absolute left-[30%] top-[30%] h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.04] blur-[60px]" />
+      </div>
+
+      <div className="relative w-full max-w-sm scale-in">
+        <div className="mb-8 text-center">
+          <div
+            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground"
+            style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
+          >
+            <Disc3 className="h-7 w-7" />
+          </div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            Set new password
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Choose a new password for your account
+          </p>
+        </div>
+
+        <Card className="border-border/40 bg-card/80 backdrop-blur-sm">
+          <CardContent className="space-y-4 p-6">
+            <form onSubmit={handleReset} className="space-y-3">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="New password (min 6 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  required
+                  className="h-10 bg-background/50 border-border/40 placeholder:text-muted-foreground/40 transition-all duration-200 focus:bg-background focus:border-primary/30"
+                />
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  required
+                  className="h-10 bg-background/50 border-border/40 placeholder:text-muted-foreground/40 transition-all duration-200 focus:bg-background focus:border-primary/30"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-destructive fade-in">{error}</p>
+              )}
+              <Button
+                type="submit"
+                className="w-full h-10 font-semibold transition-all duration-200 active:scale-[0.98] hover:brightness-110"
+                disabled={loading}
+              >
+                {loading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Update password
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

@@ -37,6 +37,11 @@ export function Navbar() {
   if (pathname === "/login" || pathname === "/signup") return null;
 
   async function handleLogout() {
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+    } catch {
+      // Fall through to client-side signout
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

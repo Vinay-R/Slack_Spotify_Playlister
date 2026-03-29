@@ -5,7 +5,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
-  const safePath = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const safePath =
+    next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+      ? next
+      : "/";
 
   if (code) {
     const cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[] = [];

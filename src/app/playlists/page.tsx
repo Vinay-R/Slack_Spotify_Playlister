@@ -5,7 +5,7 @@ import { PlaylistCard } from "@/components/PlaylistCard";
 import { SyncButton } from "@/components/SyncButton";
 import { AutoSyncManager } from "@/components/AutoSyncManager";
 import { buttonVariants } from "@/components/ui/button";
-import { Loader2, ListMusic } from "lucide-react";
+import { Loader2, ListMusic, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -24,12 +24,20 @@ interface Playlist {
 export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPlaylists = useCallback(async () => {
-    const res = await fetch("/api/playlists");
-    const data = await res.json();
-    setPlaylists(data.playlists);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/playlists");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load playlists");
+      setPlaylists(data.playlists);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load playlists");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -41,6 +49,28 @@ export default function PlaylistsPage() {
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Loading playlists...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4 fade-in">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="font-heading text-base font-medium">
+          Could not load playlists
+        </p>
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            fetchPlaylists();
+          }}
+          className={cn(buttonVariants({ variant: "secondary" }))}
+        >
+          Try again
+        </button>
       </div>
     );
   }

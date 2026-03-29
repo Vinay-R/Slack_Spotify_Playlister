@@ -42,8 +42,6 @@ export async function GET(request: NextRequest) {
       redirect_uri: redirectUri,
     });
 
-    console.log("Slack token exchange redirect_uri:", redirectUri);
-
     const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -53,9 +51,9 @@ export async function GET(request: NextRequest) {
     const data = await tokenRes.json();
 
     if (!data.ok) {
-      console.error("Slack token exchange failed:", data.error, data);
+      console.error("Slack token exchange failed:", data.error);
       return NextResponse.redirect(
-        new URL(`/connect?error=${data.error}`, request.url)
+        new URL("/connect?error=slack_authorization_failed", request.url)
       );
     }
 

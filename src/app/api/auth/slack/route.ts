@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createSignedState } from "@/lib/oauth-state";
+import { prisma } from "@/lib/prisma";
+import { getSlackToken } from "@/lib/slack-token";
 
 export async function GET() {
   const baseUrl =
@@ -23,8 +25,6 @@ export async function GET() {
     const userScopes = ["channels:read", "channels:history"].join(",");
     const redirectUri = `${baseUrl}/api/auth/slack/callback`;
 
-    console.log("Slack OAuth redirect_uri:", redirectUri);
-
     const url = new URL("https://slack.com/oauth/v2/authorize");
     url.searchParams.set("client_id", clientId);
     url.searchParams.set("scope", "");
@@ -37,6 +37,44 @@ export async function GET() {
     console.error("Slack OAuth initiation error:", err);
     return NextResponse.redirect(
       new URL("/connect?error=auth_failed", baseUrl)
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const user = await getUser();
+
+    const slack = await getSlackToken(user.id).catch(() => null);
+    if (!slack) {
+      return NextResponse.json(
+        { error: "No Slack connection found" },
+        { status: 404 }
+      );
+    }
+
+    try {
+      await fetch("https://slack.com/api/auth.revoke", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${slack.token}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+    } catch {
+      // Best-effort revocation; continue with deletion even if Slack is unreachable
+    }
+
+    await prisma.slackConnection.delete({
+      where: { id: slack.connectionId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Slack disconnect error:", err);
+    return NextResponse.json(
+      { error: "Failed to disconnect Slack" },
+      { status: 500 }
     );
   }
 }

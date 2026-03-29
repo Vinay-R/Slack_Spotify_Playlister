@@ -55,6 +55,7 @@ export async function getSlackToken(userId: string): Promise<{
 }> {
   const slack = await prisma.slackConnection.findFirst({
     where: { userId },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       teamName: true,

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Disc3, Loader2 } from "lucide-react";
+import { Disc3, Loader2, CheckCircle2 } from "lucide-react";
 import { GoogleIcon } from "@/components/GoogleIcon";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const message = searchParams.get("message");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +74,15 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {message === "password_reset" && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm text-primary">
+              Password reset successfully. Sign in with your new password.
+            </p>
+          </div>
+        )}
+
         <Card className="border-border/40 bg-card/80 backdrop-blur-sm">
           <CardContent className="space-y-4 p-6">
             <Button
@@ -113,6 +124,14 @@ export default function LoginPage() {
                   required
                   className="h-10 bg-background/50 border-border/40 placeholder:text-muted-foreground/40 transition-all duration-200 focus:bg-background focus:border-primary/30"
                 />
+              </div>
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground/70 hover:text-primary transition-colors"
+                >
+                  Forgot password?
+                </Link>
               </div>
               {error && (
                 <p className="text-sm text-destructive fade-in">{error}</p>

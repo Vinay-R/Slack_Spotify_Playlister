@@ -16,6 +16,8 @@ model SlackConnection {
   /// All new writes MUST use accessTokenEncrypted via saveSlackToken().
   accessToken           String   @default("")
   accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  slackTokenExpiresAt   DateTime?
   tokenKeyVersion       Int?
   createdAt             DateTime @default(now())
   channels              TrackedChannel[]

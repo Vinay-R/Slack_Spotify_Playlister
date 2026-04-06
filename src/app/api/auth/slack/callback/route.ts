@@ -69,6 +69,10 @@ export async function GET(request: NextRequest) {
       teamId: data.team.id,
       teamName: data.team.name,
       plainToken: userToken,
+      plainRefreshToken: data.authed_user?.refresh_token ?? undefined,
+      expiresIn: data.authed_user?.token_expiry_date
+        ? data.authed_user.token_expiry_date - Math.floor(Date.now() / 1000)
+        : data.authed_user?.expires_in ?? undefined,
     });
 
     return NextResponse.redirect(

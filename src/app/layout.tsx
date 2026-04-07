@@ -44,6 +44,17 @@ export default function RootLayout({
             {children}
           </div>
         </main>
+        <footer className="border-t border-border/40 py-5">
+          <div className="mx-auto max-w-5xl px-5 sm:px-8 flex items-center justify-between text-xs text-muted-foreground/50">
+            <span>Slack Playlister</span>
+            <a
+              href="/support"
+              className="hover:text-muted-foreground transition-colors"
+            >
+              Support
+            </a>
+          </div>
+        </footer>
       </body>
     </html>
   );

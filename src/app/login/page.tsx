@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +26,13 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastMethod, setLastMethod] = useState<"google" | "email" | null>(null);
+
+  // Read after mount to avoid SSR/hydration mismatch
+  useEffect(() => {
+    const stored = localStorage.getItem("lastLoginMethod");
+    if (stored === "google" || stored === "email") setLastMethod(stored);
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -44,11 +51,14 @@ function LoginContent() {
       return;
     }
 
+    localStorage.setItem("lastLoginMethod", "email");
     router.push("/");
     router.refresh();
   }
 
   async function handleGoogleLogin() {
+    // Set before redirect — localStorage persists across the OAuth redirect cycle
+    localStorage.setItem("lastLoginMethod", "google");
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -56,7 +66,10 @@ function LoginContent() {
         redirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
-    if (error) setError(error.message);
+    if (error) {
+      localStorage.removeItem("lastLoginMethod");
+      setError(error.message);
+    }
   }
 
   return (
@@ -101,6 +114,9 @@ function LoginContent() {
             >
               <GoogleIcon className="h-4 w-4" />
               Continue with Google
+              {lastMethod === "google" && (
+                <span className="ml-auto text-[10px] text-muted-foreground/50">Last used</span>
+              )}
             </Button>
 
             <div className="relative py-1">
@@ -110,6 +126,9 @@ function LoginContent() {
               <div className="relative flex justify-center">
                 <span className="bg-card/80 px-3 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/50">
                   or continue with email
+                  {lastMethod === "email" && (
+                    <span className="ml-1.5 normal-case tracking-normal">· Last used</span>
+                  )}
                 </span>
               </div>
             </div>

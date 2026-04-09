@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     const { pathname } = request.nextUrl;
-    const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password", "/api/auth/"];
+    const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password", "/api/auth/", "/privacy", "/terms", "/support"];
     const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
     if (!user && !isPublic) {
@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
   } catch (err) {
     console.error("Middleware error:", err);
     const { pathname } = request.nextUrl;
-    const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password", "/api/auth/"];
+    const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password", "/api/auth/", "/privacy", "/terms", "/support"];
     const isPublic = publicPaths.some((p) => pathname.startsWith(p));
     if (isPublic) {
       return NextResponse.next();

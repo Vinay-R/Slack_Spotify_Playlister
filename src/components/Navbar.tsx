@@ -26,15 +26,38 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setEmail(user?.email ?? null);
+      setAuthChecked(true);
     });
   }, []);
 
   if (pathname === "/login" || pathname === "/signup") return null;
+
+  const publicPages = ["/privacy", "/terms", "/support"];
+  const isPublicPage = publicPages.includes(pathname);
+
+  if (isPublicPage && authChecked && !email) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-5 sm:px-8">
+          <Link
+            href="/login"
+            className="group flex items-center gap-2.5 font-heading text-[15px] font-bold tracking-tight"
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform duration-200 group-hover:scale-110">
+              <Disc3 className="h-3.5 w-3.5" />
+            </div>
+            <span className="hidden sm:inline">Slacklister</span>
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   async function handleLogout() {
     try {

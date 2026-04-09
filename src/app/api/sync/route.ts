@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
         const playlist = await createPlaylist(
           `#${channel.channelName}`,
-          `Spotify tracks shared in #${channel.channelName} (recreated by Slack Playlister)`,
+          `Spotify tracks shared in #${channel.channelName} (recreated by Slacklister)`,
           user.id
         );
         playlistId = playlist.id;

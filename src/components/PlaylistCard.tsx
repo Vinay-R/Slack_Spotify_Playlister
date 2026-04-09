@@ -73,37 +73,40 @@ export function PlaylistCard({
   }
 
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3.5 transition-all duration-200 hover:border-border hover:bg-card/80 hover:shadow-md hover:shadow-black/[0.03]">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform duration-200 group-hover:scale-105">
-        <Music className="h-5 w-5 text-primary" />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <Hash className="h-3.5 w-3.5 text-muted-foreground/50" />
-          <span className="text-sm font-semibold truncate">{channelName}</span>
-          <Badge
-            variant="secondary"
-            className="text-[10px] px-1.5 py-0 shrink-0"
-          >
-            {teamName}
-          </Badge>
+    <div className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-border hover:bg-card/80 hover:shadow-md hover:shadow-black/[0.03] sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3.5">
+      <div className="flex flex-1 items-center gap-4 min-w-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform duration-200 group-hover:scale-105">
+          <Music className="h-5 w-5 text-primary" />
         </div>
-        <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 tabular-nums">
-            <Music className="h-3 w-3" />
-            {trackCount} track{trackCount !== 1 ? "s" : ""}
-          </span>
-          {lastSyncedAt && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {timeAgo(lastSyncedAt)}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Hash className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <span className="text-sm font-semibold truncate">{channelName}</span>
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 shrink-0"
+            >
+              {teamName}
+            </Badge>
+          </div>
+          <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 tabular-nums">
+              <Music className="h-3 w-3" />
+              {trackCount} track{trackCount !== 1 ? "s" : ""}
             </span>
-          )}
+            {lastSyncedAt && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {timeAgo(lastSyncedAt)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0 opacity-70 transition-opacity duration-150 group-hover:opacity-100">
+      {/* Actions: indented to align with channel name on mobile, inline on sm+ */}
+      <div className="flex items-center gap-1.5 shrink-0 pl-14 sm:pl-0">
         <Button
           variant="ghost"
           size="icon-xs"

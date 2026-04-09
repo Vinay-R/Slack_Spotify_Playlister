@@ -1,6 +1,6 @@
-# Slack Playlister
+# Slacklister
 
-Create Spotify playlists from music links shared in your Slack channels. Connect your Slack workspace, pick which channels to watch, and Slack Playlister will build and maintain a Spotify playlist for each one.
+Create Spotify playlists from music links shared in your Slack channels. Connect your Slack workspace, pick which channels to watch, and SlackLister will build and maintain a Spotify playlist for each one.
 
 ## Features
 
@@ -18,7 +18,7 @@ You need two developer apps before running:
 ### 1. Create a Slack App
 
 1. Go to <https://api.slack.com/apps> and click **Create New App > From scratch**
-2. Name it (e.g. "Slack Playlister") and select your workspace
+2. Name it (e.g. "Slacklister") and select your workspace
 3. Under **OAuth & Permissions > Scopes > Bot Token Scopes**, add:
    - `channels:read`
    - `channels:history`

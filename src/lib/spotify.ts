@@ -91,7 +91,7 @@ export async function createPlaylist(
       },
       body: JSON.stringify({
         name,
-        description: description || `Created by Slack Playlister`,
+        description: description || `Created by Slacklister`,
         public: false,
       }),
     }

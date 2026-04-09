@@ -2,8 +2,8 @@ import { Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
-  title: "Support – Slack Playlister",
-  description: "Get help with Slack Playlister.",
+  title: "Support – Slacklister",
+  description: "Get help with Slacklister.",
 };
 
 export default function SupportPage() {

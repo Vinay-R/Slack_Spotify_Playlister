@@ -93,7 +93,7 @@ export function ChannelList({
         <div className="flex items-center gap-3">
           <button
             onClick={toggleAll}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors p-2 -m-2"
           >
             {allSelected ? "Deselect all" : "Select all"}
           </button>
@@ -132,7 +132,7 @@ export function ChannelList({
             disabled={ch.tracked}
             onClick={() => !ch.tracked && toggleChannel(ch.id)}
             className={cn(
-              "fade-in-up flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150",
+              "fade-in-up flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all duration-150",
               ch.tracked
                 ? "bg-primary/[0.04] cursor-default"
                 : selected.has(ch.id)

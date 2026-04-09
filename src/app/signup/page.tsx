@@ -98,7 +98,7 @@ export default function SignupPage() {
             Create account
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Get started with Slack Playlister
+            Get started with Slacklister
           </p>
         </div>
 

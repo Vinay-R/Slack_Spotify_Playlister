@@ -49,15 +49,15 @@ export default function Dashboard() {
     <div className="space-y-10">
       <div className="fade-in-up stagger-1">
         <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-          Slack Playlister
+          Slacklister
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground max-w-xl">
           Automatically create Spotify playlists from music shared in your Slack
-          channels. Connect, select, listen.
+          channels. Connect, Select, Listen.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 fade-in-up stagger-2">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 fade-in-up stagger-2">
         {[
           {
             label: "Slack",
@@ -80,14 +80,14 @@ export default function Dashboard() {
             value: String(status?.trackedChannels || 0),
             sub: "Tracked",
             icon: Hash,
-            active: false,
+            active: bothConnected && hasPlaylists,
           },
           {
             label: "Tracks",
             value: String(status?.totalTracks || 0),
             sub: "In playlists",
             icon: Music,
-            active: false,
+            active: bothConnected && hasPlaylists,
           },
         ].map((stat) => (
           <Card

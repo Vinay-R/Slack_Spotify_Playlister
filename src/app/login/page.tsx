@@ -91,7 +91,7 @@ function LoginContent() {
             Welcome back
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Sign in to Slack Playlister
+            Sign in to Slacklister
           </p>
         </div>
 

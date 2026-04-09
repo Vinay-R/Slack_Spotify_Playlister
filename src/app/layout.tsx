@@ -22,9 +22,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Slack Playlister",
+  title: "Slacklister",
   description:
-    "Create Spotify playlists from Spotify links shared in your Slack channels",
+    "Create Spotify playlists from Spotify links shared in your Slack channels – Slacklister",
 };
 
 export default function RootLayout({
@@ -45,8 +45,19 @@ export default function RootLayout({
           </div>
         </main>
         <footer className="border-t border-border/40 py-5">
-          <div className="mx-auto max-w-5xl px-5 sm:px-8 flex items-center justify-between text-xs text-muted-foreground/50">
-            <span>Slack Playlister</span>
+          <div className="mx-auto max-w-5xl px-5 sm:px-8 flex items-center justify-end gap-4 text-xs text-muted-foreground/50">
+            <a
+              href="/terms"
+              className="hover:text-muted-foreground transition-colors"
+            >
+              Terms of Service
+            </a>
+            <a
+              href="/privacy"
+              className="hover:text-muted-foreground transition-colors"
+            >
+              Privacy Policy
+            </a>
             <a
               href="/support"
               className="hover:text-muted-foreground transition-colors"

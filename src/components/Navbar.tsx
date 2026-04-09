@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Music,
+  Disc3,
   Hash,
   ListMusic,
   Link2,
@@ -56,7 +56,7 @@ export function Navbar() {
           className="group flex items-center gap-2.5 font-heading text-[15px] font-bold tracking-tight"
         >
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform duration-200 group-hover:scale-110">
-            <Music className="h-3.5 w-3.5" />
+            <Disc3 className="h-3.5 w-3.5" />
           </div>
           <span className="hidden sm:inline">Slacklister</span>
         </Link>

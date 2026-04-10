@@ -130,24 +130,35 @@ async function refreshSlackToken(
     throw new Error("Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET");
   }
 
-  const res = await fetch("https://slack.com/api/tooling.tokens.rotate", {
+  const res = await fetch("https://slack.com/api/oauth.v2.access", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
+      grant_type: "refresh_token",
       refresh_token: refreshToken,
     }).toString(),
   });
 
   const data = await res.json();
   if (!data.ok) {
-    throw new Error(`Slack token refresh failed: ${data.error}`);
+    throw new Error(`Slack token refresh failed: ${data.error || "unknown_error"}`);
+  }
+
+  const accessToken =
+    data.authed_user?.access_token ?? data.access_token ?? data.token;
+  const nextRefreshToken =
+    data.authed_user?.refresh_token ?? data.refresh_token;
+  const expiresIn = data.authed_user?.expires_in ?? data.expires_in;
+
+  if (!accessToken || !nextRefreshToken || !expiresIn) {
+    throw new Error("Slack token refresh failed: invalid_response_shape");
   }
 
   return {
-    accessToken: data.token,
-    refreshToken: data.refresh_token,
-    expiresIn: data.exp - Math.floor(Date.now() / 1000),
+    accessToken,
+    refreshToken: nextRefreshToken,
+    expiresIn: Number(expiresIn),
   };
 }

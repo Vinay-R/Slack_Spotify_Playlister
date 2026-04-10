@@ -10,11 +10,13 @@ export async function GET() {
 
     const slack = await prisma.slackConnection.findFirst({
       where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
       select: { teamName: true, teamId: true, createdAt: true },
     });
 
     const spotify = await prisma.spotifyConnection.findFirst({
       where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
       select: { displayName: true, spotifyUserId: true, createdAt: true },
     });
 

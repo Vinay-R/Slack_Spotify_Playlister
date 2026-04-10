@@ -8,11 +8,19 @@ export async function GET() {
   try {
     const user = await getUser();
 
-    const slack = await getSlackToken(user.id).catch(() => null);
-    if (!slack) {
+    let slack: Awaited<ReturnType<typeof getSlackToken>>;
+    try {
+      slack = await getSlackToken(user.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "unknown_error";
+      console.error("Channels GET Slack token error:", message);
+      const isNotConnected = message === "No Slack workspace connected";
+      const uiMessage = isNotConnected
+        ? "No Slack workspace connected"
+        : "Slack connection is invalid or expired. Please reconnect Slack.";
       return NextResponse.json(
-        { error: "No Slack workspace connected" },
-        { status: 400 }
+        { error: uiMessage },
+        { status: isNotConnected ? 400 : 401 }
       );
     }
 

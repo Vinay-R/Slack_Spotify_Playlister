@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { SyncButton } from "@/components/SyncButton";
 import {
@@ -10,8 +9,7 @@ import {
   Music,
   ListMusic,
   ArrowRight,
-  CheckCircle2,
-  Circle,
+  Check,
   Disc3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +19,57 @@ interface Status {
   spotify: { connected: boolean; displayName?: string };
   trackedChannels: number;
   totalTracks: number;
+}
+
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (target === 0) {
+      setValue(0);
+      return;
+    }
+    const start = performance.now();
+    let raf: number;
+    function tick(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(eased * target));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
+
+function StatusDot({ active }: { active: boolean }) {
+  return (
+    <span className="relative flex h-2 w-2">
+      {active && (
+        <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-40 animate-ping" />
+      )}
+      <span
+        className={cn(
+          "relative inline-flex h-2 w-2 rounded-full",
+          active ? "bg-primary" : "bg-muted-foreground/30"
+        )}
+      />
+    </span>
+  );
+}
+
+function EqualiserBars() {
+  return (
+    <div className="flex items-end gap-[3px] h-5">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="w-[3px] rounded-full bg-primary/60 equaliser-bar"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -37,115 +86,73 @@ export default function Dashboard() {
   const bothConnected = status?.slack.connected && status?.spotify.connected;
   const hasPlaylists = (status?.trackedChannels || 0) > 0;
 
+  const trackCount = useCountUp(status?.totalTracks || 0);
+  const channelCount = useCountUp(status?.trackedChannels || 0);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Disc3 className="h-8 w-8 text-primary" style={{ animation: "spin-slow 2s linear infinite" }} />
+        <Disc3
+          className="h-8 w-8 text-primary"
+          style={{ animation: "spin-slow 2s linear infinite" }}
+        />
       </div>
     );
   }
 
+  const subtitle = !bothConnected
+    ? "Connect your accounts to get started"
+    : !hasPlaylists
+      ? "Select channels to start building playlists"
+      : `${status?.trackedChannels} channel${status?.trackedChannels !== 1 ? "s" : ""} · ${status?.totalTracks} track${status?.totalTracks !== 1 ? "s" : ""}`;
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
+      {/* Title */}
       <div className="fade-in-up stagger-1">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="font-heading text-5xl font-extrabold tracking-tighter sm:text-6xl">
           Slacklister
         </h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground max-w-xl">
-          Automatically create Spotify playlists from music shared in your Slack
-          channels. Connect, Select, Listen.
+        <p className="mt-3 text-sm text-muted-foreground font-mono tracking-wide">
+          {subtitle}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 fade-in-up stagger-2">
-        {[
-          {
-            label: "Slack",
-            value: status?.slack.connected ? status.slack.teamName : "---",
-            sub: status?.slack.connected ? "Connected" : "Not connected",
-            icon: status?.slack.connected ? CheckCircle2 : Circle,
-            active: status?.slack.connected,
-          },
-          {
-            label: "Spotify",
-            value: status?.spotify.connected
-              ? status.spotify.displayName
-              : "---",
-            sub: status?.spotify.connected ? "Connected" : "Not connected",
-            icon: status?.spotify.connected ? CheckCircle2 : Circle,
-            active: status?.spotify.connected,
-          },
-          {
-            label: "Channels",
-            value: String(status?.trackedChannels || 0),
-            sub: "Tracked",
-            icon: Hash,
-            active: bothConnected && hasPlaylists,
-          },
-          {
-            label: "Tracks",
-            value: String(status?.totalTracks || 0),
-            sub: "In playlists",
-            icon: Music,
-            active: bothConnected && hasPlaylists,
-          },
-        ].map((stat) => (
-          <Card
-            key={stat.label}
-            className="group relative overflow-hidden transition-all duration-200 hover:border-primary/20"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {stat.label}
-              </CardTitle>
-              <stat.icon
-                className={cn(
-                  "h-3.5 w-3.5 transition-colors",
-                  stat.active ? "text-primary" : "text-muted-foreground/60"
-                )}
-              />
-            </CardHeader>
-            <CardContent>
-              <div className="font-heading text-2xl font-bold tracking-tight">
-                {stat.value}
+      {/* ── Connected with playlists ── */}
+      {bothConnected && hasPlaylists && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 fade-in-up stagger-2">
+          {/* Hero block */}
+          <div className="lg:col-span-3 rounded-2xl border border-white/[0.06] bg-surface-elevated p-6 sm:p-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-5xl sm:text-6xl font-bold tabular-nums tracking-tighter">
+                    {trackCount}
+                  </span>
+                  <span className="text-sm text-muted-foreground font-mono">
+                    tracks
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  across{" "}
+                  <span className="text-foreground font-medium">
+                    {channelCount} channel
+                    {(status?.trackedChannels || 0) !== 1 ? "s" : ""}
+                  </span>
+                </p>
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <EqualiserBars />
+            </div>
 
-      <Card className="fade-in-up stagger-3 overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="font-heading text-base font-semibold">
-            Quick Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2.5">
-          {!bothConnected ? (
-            <Link
-              href="/connect"
-              className={cn(buttonVariants(), "gap-2 transition-transform duration-150 active:scale-[0.98]")}
-            >
-              Connect Services
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          ) : !hasPlaylists ? (
-            <Link
-              href="/channels"
-              className={cn(buttonVariants(), "gap-2 transition-transform duration-150 active:scale-[0.98]")}
-            >
-              <Hash className="h-3.5 w-3.5" />
-              Select Channels
-            </Link>
-          ) : (
-            <>
-              <SyncButton label="Sync All Playlists" variant="default" />
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="shadow-[0_0_16px_var(--glow)] rounded-lg">
+                <SyncButton label="Sync All" variant="default" />
+              </div>
               <Link
                 href="/channels"
                 className={cn(
-                  buttonVariants({ variant: "secondary" }),
-                  "gap-2"
+                  buttonVariants({ variant: "ghost" }),
+                  "gap-2 text-muted-foreground"
                 )}
               >
                 <Hash className="h-3.5 w-3.5" />
@@ -154,61 +161,196 @@ export default function Dashboard() {
               <Link
                 href="/playlists"
                 className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "gap-2"
+                  buttonVariants({ variant: "ghost" }),
+                  "gap-2 text-muted-foreground"
                 )}
               >
                 <ListMusic className="h-3.5 w-3.5" />
                 View Playlists
               </Link>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </div>
 
-      {!bothConnected && (
-        <div className="fade-in-up stagger-4 rounded-xl border border-dashed border-border/60 bg-surface/50 p-8">
-          <div className="flex flex-col items-center text-center gap-5">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10"
-              style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
-            >
-              <Disc3 className="h-7 w-7 text-primary" />
-            </div>
-            <div className="space-y-1.5 max-w-sm">
-              <h2 className="font-heading text-lg font-semibold">
-                Get started
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Connect your Slack workspace and Spotify account to start
-                creating playlists from your team&apos;s shared music.
-              </p>
-            </div>
-            <div className="flex gap-5 mt-1">
-              {[
-                { label: "Slack", done: status?.slack.connected },
-                { label: "Spotify", done: status?.spotify.connected },
-              ].map((svc) => (
-                <div
-                  key={svc.label}
-                  className="flex items-center gap-1.5 text-sm"
-                >
-                  {svc.done ? (
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground/50" />
-                  )}
-                  <span
-                    className={cn(
-                      svc.done
-                        ? "text-foreground font-medium"
-                        : "text-muted-foreground"
-                    )}
-                  >
+          {/* Connection status + mini stats */}
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            {[
+              {
+                label: "Slack",
+                detail: status?.slack.teamName,
+                connected: status?.slack.connected,
+              },
+              {
+                label: "Spotify",
+                detail: status?.spotify.displayName,
+                connected: status?.spotify.connected,
+              },
+            ].map((svc) => (
+              <div
+                key={svc.label}
+                className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-surface-elevated px-4 py-3.5"
+              >
+                <StatusDot active={!!svc.connected} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
                     {svc.label}
-                  </span>
+                  </p>
+                  <p className="text-sm font-medium truncate">
+                    {svc.detail || "---"}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            <div className="grid grid-cols-2 gap-3 mt-auto">
+              {[
+                { label: "Channels", value: channelCount, icon: Hash },
+                { label: "Tracks", value: trackCount, icon: Music },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-xl border border-white/[0.06] bg-surface-elevated px-4 py-3"
+                >
+                  <stat.icon className="h-3.5 w-3.5 text-muted-foreground/40 mb-1.5" />
+                  <p className="font-mono text-2xl font-bold tabular-nums tracking-tight">
+                    {stat.value}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Connected, no playlists ── */}
+      {bothConnected && !hasPlaylists && (
+        <div className="fade-in-up stagger-2 space-y-6">
+          <div className="flex flex-wrap gap-6">
+            {[
+              { label: "Slack", detail: status?.slack.teamName },
+              { label: "Spotify", detail: status?.spotify.displayName },
+            ].map((svc) => (
+              <div
+                key={svc.label}
+                className="flex items-center gap-2.5 text-sm"
+              >
+                <StatusDot active />
+                <span className="text-muted-foreground">{svc.label}</span>
+                <span className="font-medium">{svc.detail}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface-elevated p-10 sm:p-14">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.05] via-transparent to-transparent" />
+            <div className="relative flex flex-col items-center text-center gap-6">
+              <Disc3
+                className="h-16 w-16 text-primary/50"
+                style={{ animation: "spin-slow 4s linear infinite" }}
+              />
+              <div className="space-y-2 max-w-md">
+                <h2 className="font-heading text-2xl font-bold tracking-tight">
+                  Pick your channels
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Choose which Slack channels to scan for Spotify links.
+                  We&apos;ll build a playlist from every track your team has
+                  shared.
+                </p>
+              </div>
+              <Link
+                href="/channels"
+                className={cn(
+                  buttonVariants(),
+                  "gap-2 mt-2 shadow-[0_0_20px_var(--glow)] transition-all duration-300 hover:shadow-[0_0_30px_var(--glow)]"
+                )}
+              >
+                <Hash className="h-3.5 w-3.5" />
+                Select Channels
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Not connected: Onboarding ── */}
+      {!bothConnected && (
+        <div className="fade-in-up stagger-2">
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface-elevated p-10 sm:p-16">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent" />
+            <div className="relative flex flex-col items-center text-center gap-8">
+              <div className="relative">
+                <div
+                  className="absolute -inset-4 rounded-full blur-2xl bg-primary/20"
+                  style={{ animation: "pulse-glow 3s ease-in-out infinite" }}
+                />
+                <Disc3
+                  className="relative h-16 w-16 text-primary"
+                  style={{ animation: "spin-slow 3s linear infinite" }}
+                />
+              </div>
+
+              <div className="space-y-2 max-w-md">
+                <h2 className="font-heading text-2xl font-bold tracking-tight">
+                  Get started
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Connect your Slack workspace and Spotify account to start
+                  creating playlists from your team&apos;s shared music.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-mono">
+                {[
+                  { n: "1", label: "Slack", done: status?.slack.connected },
+                  {
+                    n: "2",
+                    label: "Spotify",
+                    done: status?.spotify.connected,
+                  },
+                  { n: "3", label: "Pick channels", done: false },
+                ].map((step, i) => (
+                  <div key={step.n} className="flex items-center gap-3">
+                    {i > 0 && (
+                      <span className="text-muted-foreground/20 -ml-3 hidden sm:inline">
+                        ———
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold",
+                        step.done
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-muted-foreground/20 text-muted-foreground"
+                      )}
+                    >
+                      {step.done ? <Check className="h-3 w-3" /> : step.n}
+                    </span>
+                    <span
+                      className={cn(
+                        step.done
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/connect"
+                className={cn(
+                  buttonVariants(),
+                  "gap-2 mt-2 shadow-[0_0_20px_var(--glow)] transition-all duration-300 hover:shadow-[0_0_30px_var(--glow)]"
+                )}
+              >
+                Connect Services
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         </div>

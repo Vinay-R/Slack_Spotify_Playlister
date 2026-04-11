@@ -29,7 +29,7 @@ export function AutoSyncManager({ lastSyncedAt }: AutoSyncManagerProps) {
         <div>
           <p className="text-sm font-medium">Auto-Sync</p>
           <p className="text-[11px] text-muted-foreground">
-            Server syncs automatically every hour
+            Playlists sync automatically every hour
           </p>
         </div>
       </div>

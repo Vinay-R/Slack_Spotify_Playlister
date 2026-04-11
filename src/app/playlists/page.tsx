@@ -104,7 +104,6 @@ export default function PlaylistsPage() {
               if (!latest) return p.lastSyncedAt;
               return p.lastSyncedAt > latest ? p.lastSyncedAt : latest;
             }, null)}
-            onSyncTriggered={fetchPlaylists}
           />
         </div>
       )}

@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Find all distinct users who have at least one tracked channel with a playlist
-  const userRows = await prisma.trackedChannel.findMany({
-    where: { NOT: { spotifyPlaylistId: null } },
-    select: { userId: true },
-    distinct: ["userId"],
-  });
+  // Find all distinct users who have at least one tracked channel with a playlist.
+  // Uses raw SQL because the Prisma userId guard blocks unscoped findMany,
+  // and this admin-level cron query intentionally spans all users.
+  const userRows = await prisma.$queryRaw<{ userId: string }[]>`
+    SELECT DISTINCT "userId" FROM "TrackedChannel" WHERE "spotifyPlaylistId" IS NOT NULL
+  `;
 
   const userIds = userRows.map((r) => r.userId);
 
